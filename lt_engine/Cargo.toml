@@ -1,0 +1,16 @@
+[package]
+name = "lt_engine"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+libcli = {path = "../libcli"}
+libprotocol = {path = "../libprotocol"}
+clap = { version = "4.5.57", features = [ "env"] }
+schemars = "1.2.1"
+anyhow = "1.0.101"
+assert_cmd = "2.1.2"
+
+[dev-dependencies]
+assert_cmd = "2.1.2"
+predicates = "3.1.3"

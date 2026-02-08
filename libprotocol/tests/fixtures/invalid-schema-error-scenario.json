@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "target": {
+    "default_headers": {
+      "Content-Type": "application/json"
+    }
+  },
+  "workload": {
+    "blablabla": null,
+    "stages": null
+  },
+  "threshold": []
+}

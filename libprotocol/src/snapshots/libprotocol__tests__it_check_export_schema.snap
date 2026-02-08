@@ -1,0 +1,114 @@
+---
+source: libprotocol/src/lib.rs
+expression: actual
+---
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Scenario",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "target": {
+      "$ref": "#/$defs/Target"
+    },
+    "threshold": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "$ref": "#/$defs/Rule"
+      }
+    },
+    "version": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    },
+    "workload": {
+      "$ref": "#/$defs/Workload"
+    }
+  },
+  "$version": "1",
+  "required": [
+    "version",
+    "name",
+    "target",
+    "workload"
+  ],
+  "$defs": {
+    "Rule": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string"
+        },
+        "metric": {
+          "type": "string"
+        },
+        "threshold": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "required": [
+        "metric",
+        "threshold",
+        "action"
+      ]
+    },
+    "Stage": {
+      "type": "object",
+      "properties": {
+        "duration_sec": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "rps": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "required": [
+        "duration_sec",
+        "rps"
+      ]
+    },
+    "Target": {
+      "type": "object",
+      "properties": {
+        "base_url": {
+          "type": "string"
+        },
+        "default_headers": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "base_url"
+      ]
+    },
+    "Workload": {
+      "type": "object",
+      "properties": {
+        "stages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Stage"
+          }
+        }
+      },
+      "required": [
+        "stages"
+      ]
+    }
+  }
+}

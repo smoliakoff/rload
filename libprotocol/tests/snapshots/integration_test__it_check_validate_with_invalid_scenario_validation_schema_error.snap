@@ -1,0 +1,23 @@
+---
+source: libprotocol/tests/integration_test.rs
+expression: e
+---
+ValidationErrors {
+    items: [
+        ValidationError {
+            path: "",
+            code: "",
+            message: "\"name\" is a required property",
+        },
+        ValidationError {
+            path: "/target",
+            code: "",
+            message: "\"base_url\" is a required property",
+        },
+        ValidationError {
+            path: "/workload/stages",
+            code: "",
+            message: "null is not of type \"array\"",
+        },
+    ],
+}

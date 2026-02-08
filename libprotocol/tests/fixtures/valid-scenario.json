@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "name": "default_scenario",
+  "target": {
+    "base_url": "localhost:8080",
+    "default_headers": {
+      "Content-Type": "application/json"
+    }
+  },
+  "workload": {
+    "stages": [
+      {
+        "duration_sec": 10,
+        "rps": 100
+      }
+    ]
+  },
+  "threshold": null
+}

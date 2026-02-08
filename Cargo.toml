@@ -1,0 +1,4 @@
+[workspace]
+resolver = "2"
+members = ["lt_engine", "libcli", "libprotocol"]
+package = { edition = "2024" }

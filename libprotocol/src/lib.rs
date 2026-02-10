@@ -1,8 +1,10 @@
 use std::io::Write;
 mod protocol_error;
+mod semantic_validator;
+
 use anyhow::Context;
 use schemars::{JsonSchema, schema_for};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::{any, fs};
@@ -13,6 +15,7 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Value};
 pub use crate::protocol_error::{JsonError, ProtocolError, ValidationError};
 use crate::protocol_error::ValidationErrors;
+use crate::semantic_validator::Validator;
 
 pub type Result<T> = std::result::Result<T, ProtocolError>;
 
@@ -41,7 +44,8 @@ pub fn validate(path: impl AsRef<Path>) -> Result<()> {
         })
     })?;
 
-    let mut errors = Vec::new();
+    let mut errors: Vec<ValidationError>     = Vec::new();
+
     for err in validator.iter_errors(&scenario_json) {
         errors.push(ValidationError {
             path: err.instance_path().to_string(), // типа "/workload/stages"
@@ -49,6 +53,15 @@ pub fn validate(path: impl AsRef<Path>) -> Result<()> {
             message: err.to_string(),
         });
     }
+
+    // 2) Business validation errors
+    let business = Validator::new()
+        .with_rule(crate::semantic_validator::NameRule::new())
+        .with_rule(crate::semantic_validator::WebProtocolRule::new())
+        .with_rule(crate::semantic_validator::StagesRule::new())
+        .with_rule(crate::semantic_validator::DurationRule::new())
+        .with_rule(crate::semantic_validator::RpsRule::new());
+    business.validate(&scenario_json, &mut errors);
 
     if !errors.is_empty() {
         writeln!(stderr(),"{}", format!("Scenario is invalid ({} errors)", errors.len()));
@@ -99,7 +112,7 @@ pub fn generate_scenario(out_path: impl AsRef<Path>, version: &str) -> anyhow::R
         .context("Failed to write default scenario to file")
 }
 
-#[derive(Serialize, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, JsonSchema, Debug)]
 pub struct Scenario {
     version: u32,
     name: String,
@@ -118,7 +131,7 @@ impl Default for Scenario {
         }
     }
 }
-#[derive(Serialize, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, JsonSchema, Debug)]
 struct Target {
     base_url: String,
     default_headers: Option<BTreeMap<String, String>>,
@@ -133,7 +146,7 @@ impl Default for Target {
         }
     }
 }
-#[derive(Serialize, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, JsonSchema, Debug)]
 struct Workload {
     stages: Vec<Stage>,
 }
@@ -145,7 +158,7 @@ impl Default for Workload {
     }
 }
 
-#[derive(Serialize, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, JsonSchema, Debug)]
 struct Stage {
     duration_sec: i32,
     rps: i32,
@@ -158,7 +171,7 @@ impl Default for Stage {
         }
     }
 }
-#[derive(Serialize, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, JsonSchema, Debug)]
 struct Rule {
     metric: String,
     threshold: i32,

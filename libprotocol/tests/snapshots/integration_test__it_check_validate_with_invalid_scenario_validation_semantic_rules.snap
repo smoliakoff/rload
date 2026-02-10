@@ -1,0 +1,28 @@
+---
+source: libprotocol/tests/integration_test.rs
+expression: e
+---
+ValidationErrors {
+    items: [
+        ValidationError {
+            path: "",
+            code: "",
+            message: "name required and must be great then 0",
+        },
+        ValidationError {
+            path: "/target/base_url",
+            code: "",
+            message: "url must start with http or https",
+        },
+        ValidationError {
+            path: "/workload/stages/duration_sec",
+            code: "",
+            message: "Duration must be >= 10 and < 86400 sec ",
+        },
+        ValidationError {
+            path: "/workload/stages/rps",
+            code: "",
+            message: "Rps must be > 1 and < 100 ",
+        },
+    ],
+}

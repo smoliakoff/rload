@@ -63,6 +63,30 @@ fn it_check_validate_with_invalid_scenario_validation_schema_error()
         other => panic!("Expected Json error, got: {other:?}"),
     }
 }
+#[test]
+fn it_check_validate_with_invalid_scenario_validation_semantic_rules()
+{
+    let scenario_file = fixture_path("invalid-semantic-rules-scenario.json");
+    let err = validate(scenario_file).unwrap_err();
+    match err {
+        libprotocol::ProtocolError::Validation(e) => {
+            insta::assert_debug_snapshot!(e);
+        }
+        other => panic!("Expected Json error, got: {other:?}"),
+    }
+}
+#[test]
+fn it_check_validate_with_invalid_scenario_validation_semantic_rules_empty_stages()
+{
+    let scenario_file = fixture_path("invalid-semantic-rules-scenario-empty-stages.json");
+    let err = validate(scenario_file).unwrap_err();
+    match err {
+        libprotocol::ProtocolError::Validation(e) => {
+            insta::assert_debug_snapshot!(e);
+        }
+        other => panic!("Expected Json error, got: {other:?}"),
+    }
+}
 
 fn fixture_path(name: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))

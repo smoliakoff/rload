@@ -1,13 +1,14 @@
 {
-  "version": "number",
+  "version": 1,
+  "name": "",
   "target": {
+    "base_url": "ftp://localhost:8080",
     "default_headers": {
       "Content-Type": "application/json"
     }
   },
   "workload": {
-    "blablabla": null,
-    "stages": null
+    "stages": []
   },
-  "threshold": []
+  "threshold": null
 }

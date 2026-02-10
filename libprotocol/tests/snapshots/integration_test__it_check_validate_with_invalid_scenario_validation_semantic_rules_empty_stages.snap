@@ -1,0 +1,23 @@
+---
+source: libprotocol/tests/integration_test.rs
+expression: e
+---
+ValidationErrors {
+    items: [
+        ValidationError {
+            path: "",
+            code: "",
+            message: "name required and must be great then 0",
+        },
+        ValidationError {
+            path: "/target/base_url",
+            code: "",
+            message: "url must start with http or https",
+        },
+        ValidationError {
+            path: "/workload/stages",
+            code: "",
+            message: "Stages must be non empty array",
+        },
+    ],
+}

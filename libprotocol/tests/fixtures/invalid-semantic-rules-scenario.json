@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "name": "default_scenario",
+  "name": "",
   "target": {
-    "base_url": "http://localhost:8080",
+    "base_url": "ftp://localhost:8080",
     "default_headers": {
       "Content-Type": "application/json"
     }
@@ -10,8 +10,8 @@
   "workload": {
     "stages": [
       {
-        "duration_sec": 10,
-        "rps": 100
+        "duration_sec": 0,
+        "rps": 99999
       }
     ]
   },

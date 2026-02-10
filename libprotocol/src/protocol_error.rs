@@ -21,7 +21,7 @@ pub struct JsonError {
 }
 
 #[derive(Debug, Error)]
-#[error("validation error at {path} {message}")]
+#[error("validation error at [{path}] {message} ({code})")]
 pub struct ValidationError {
     pub path: String,
     pub code: String,

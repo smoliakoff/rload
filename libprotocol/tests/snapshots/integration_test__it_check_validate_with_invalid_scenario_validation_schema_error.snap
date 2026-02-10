@@ -15,9 +15,19 @@ ValidationErrors {
             message: "\"base_url\" is a required property",
         },
         ValidationError {
+            path: "/version",
+            code: "",
+            message: "\"number\" is not of type \"integer\"",
+        },
+        ValidationError {
             path: "/workload/stages",
             code: "",
             message: "null is not of type \"array\"",
+        },
+        ValidationError {
+            path: "",
+            code: "json_parse_error",
+            message: "Failed to parse JSON: missing field `base_url`",
         },
     ],
 }

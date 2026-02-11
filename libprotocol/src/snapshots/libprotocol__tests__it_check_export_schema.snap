@@ -24,7 +24,8 @@ expression: actual
     },
     "version": {
       "type": "integer",
-      "format": "uint32",
+      "format": "uint16",
+      "maximum": 65535,
       "minimum": 0
     },
     "workload": {

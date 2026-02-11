@@ -60,7 +60,8 @@ pub fn validate(path: impl AsRef<Path>) -> Result<()> {
         .with_rule(crate::semantic_validator::WebProtocolRule::new())
         .with_rule(crate::semantic_validator::StagesRule::new())
         .with_rule(crate::semantic_validator::DurationRule::new())
-        .with_rule(crate::semantic_validator::RpsRule::new());
+        .with_rule(crate::semantic_validator::RpsRule::new())
+        .with_rule(crate::semantic_validator::VersionRule::new());
     business.validate(&scenario_json, &mut errors);
 
     if !errors.is_empty() {
@@ -114,7 +115,7 @@ pub fn generate_scenario(out_path: impl AsRef<Path>, version: &str) -> anyhow::R
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug)]
 pub struct Scenario {
-    version: u32,
+    version: u16,
     name: String,
     target: Target,
     workload: Workload,

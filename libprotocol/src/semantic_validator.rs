@@ -1,6 +1,20 @@
 use predicates::Predicate;
 use crate::{Scenario, Stage, ValidationError};
 
+
+enum ScenarioVersion {
+    V1 = 1,
+}
+impl TryFrom<u16> for ScenarioVersion {
+    type Error = ();
+    fn try_from(value: u16) -> Result<Self, Self::Error> {
+        match value {
+            1 => Ok(ScenarioVersion::V1),
+            _ => Err(()),
+        }
+    }
+}
+
 pub struct Validator {
     rules: Vec<Box<dyn Rule>>,
 }
@@ -88,6 +102,40 @@ impl Rule for DurationRule {
                     message: self.message.clone(),
                 })
             }
+        }
+    }
+}
+
+pub(crate) struct VersionRule {
+    message: String,
+}
+
+impl VersionRule {
+    pub(crate) fn new() -> Self {
+        VersionRule { message: "version must be integer > 0 and <= 50_000 ".to_string() }
+    }
+}
+
+impl Rule for VersionRule {
+    fn validate(&self, scenario: &Scenario, errors: &mut Vec<ValidationError>) {
+        let version: u16 = scenario.version as u16;
+        let mut push_error = || {
+            errors.push(ValidationError {
+                path: "/version".to_string(),
+                code: "".to_string(),
+                message: self.message.clone(),
+            })
+        };
+        if version<= 0 || version >= 50_000 {
+                push_error();
+        }
+
+        if ScenarioVersion::try_from(scenario.version).is_err() {
+            errors.push(ValidationError {
+                path: "".to_string(),
+                code: "".to_string(),
+                message: format!("Unsupported version: {}", scenario.version),
+            });
         }
     }
 }

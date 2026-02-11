@@ -24,5 +24,10 @@ ValidationErrors {
             code: "",
             message: "Rps must be > 1 and < 100 ",
         },
+        ValidationError {
+            path: "",
+            code: "",
+            message: "Unsupported version: 2",
+        },
     ],
 }

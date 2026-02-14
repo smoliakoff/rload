@@ -142,7 +142,7 @@ impl Default for Target {
         let mut headers: BTreeMap<String, String> = BTreeMap::new();
         headers.insert("Content-Type".to_string(), "application/json".to_string());
         Self {
-            base_url: "localhost:8080".parse().unwrap(),
+            base_url: "http://localhost:8080".parse().unwrap(),
             default_headers: Some(headers),
         }
     }

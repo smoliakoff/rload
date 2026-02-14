@@ -1,3 +1,4 @@
+use std::iter;
 use predicates::Predicate;
 use crate::{Scenario, Stage, ValidationError};
 
@@ -6,11 +7,12 @@ enum ScenarioVersion {
     V1 = 1,
 }
 impl TryFrom<u16> for ScenarioVersion {
-    type Error = ();
+    type Error = ValidationError;
+
     fn try_from(value: u16) -> Result<Self, Self::Error> {
         match value {
             1 => Ok(ScenarioVersion::V1),
-            _ => Err(()),
+            _ => Err(ValidationError{ path: "/version".to_string(), code: "unsupported_version".to_string(), message: "Unsupported version".to_string()}),
         }
     }
 }
@@ -94,10 +96,10 @@ impl DurationRule {
 
 impl Rule for DurationRule {
     fn validate(&self, scenario: &Scenario, errors: &mut Vec<ValidationError>) {
-        for stage in &scenario.workload.stages {
+        for (i, stage) in scenario.clone().workload.stages.iter().enumerate() {
             if stage.duration_sec < 10 || stage.duration_sec > 86400 {
                 errors.push(ValidationError {
-                    path: "/workload/stages/duration_sec".to_string(),
+                    path: std::format!("/workload/stages/{}/duration_sec", i),
                     code: "".to_string(),
                     message: self.message.clone(),
                 })
@@ -126,15 +128,12 @@ impl Rule for VersionRule {
                 message: self.message.clone(),
             })
         };
-        if version<= 0 || version >= 50_000 {
-                push_error();
-        }
 
         if ScenarioVersion::try_from(scenario.version).is_err() {
             errors.push(ValidationError {
-                path: "".to_string(),
-                code: "".to_string(),
-                message: format!("Unsupported version: {}", scenario.version),
+                path: "/version".to_string(),
+                code: "unsupported_version".to_string(),
+                message: format!("Unsupported version: {}. Supported: [1]", scenario.version),
             });
         }
     }
@@ -153,10 +152,10 @@ impl RpsRule {
 
 impl Rule for RpsRule {
     fn validate(&self, scenario: &Scenario, errors: &mut Vec<ValidationError>) {
-        for stage in &scenario.workload.stages {
-            if stage.duration_sec == 0 || stage.duration_sec > 100 {
+        for (i, stage) in scenario.clone().workload.stages.iter().enumerate() {
+            if stage.rps == 0 || stage.rps > 10000 {
                 errors.push(ValidationError {
-                    path: "/workload/stages/rps".to_string(),
+                    path: std::format!("/workload/stages/{}/rps", i),
                     code: "".to_string(),
                     message: self.message.clone(),
                 })
@@ -182,8 +181,10 @@ impl Rule for WebProtocolRule {
     fn validate(&self, scenario: &Scenario, errors: &mut Vec<ValidationError>) {
         let predicates_http = predicates::str::starts_with("http");
         let predicates_https = predicates::str::starts_with("https");
-        if !(predicates_https.eval(scenario.target.base_url.as_str()) ||
-            predicates_http.eval(scenario.target.base_url.as_str()))  {
+        if !(
+            predicates_https.eval(scenario.target.base_url.as_str()) ||
+            predicates_http.eval(scenario.target.base_url.as_str())
+        )  {
             errors.push(ValidationError{
                 path: "/target/base_url".to_string(),
                 code: "".to_string(),

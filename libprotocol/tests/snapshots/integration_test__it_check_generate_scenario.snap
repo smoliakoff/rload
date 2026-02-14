@@ -6,7 +6,7 @@ expression: "std::fs::read_to_string(&output_file)?"
   "version": 1,
   "name": "default_scenario",
   "target": {
-    "base_url": "localhost:8080",
+    "base_url": "http://localhost:8080",
     "default_headers": {
       "Content-Type": "application/json"
     }

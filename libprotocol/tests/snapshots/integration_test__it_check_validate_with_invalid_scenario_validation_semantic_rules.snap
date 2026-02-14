@@ -15,19 +15,19 @@ ValidationErrors {
             message: "url must start with http or https",
         },
         ValidationError {
-            path: "/workload/stages/duration_sec",
+            path: "/workload/stages/0/duration_sec",
             code: "",
             message: "Duration must be >= 10 and < 86400 sec ",
         },
         ValidationError {
-            path: "/workload/stages/rps",
+            path: "/workload/stages/0/rps",
             code: "",
             message: "Rps must be > 1 and < 100 ",
         },
         ValidationError {
-            path: "",
-            code: "",
-            message: "Unsupported version: 2",
+            path: "/version",
+            code: "unsupported_version",
+            message: "Unsupported version: 2. Supported: [1]",
         },
     ],
 }

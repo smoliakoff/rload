@@ -7,19 +7,43 @@ expression: actual
   "title": "Scenario",
   "type": "object",
   "properties": {
+    "description": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "journeys": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Journey"
+      }
+    },
+    "metadata": {
+      "type": "null"
+    },
     "name": {
       "type": "string"
     },
-    "target": {
-      "$ref": "#/$defs/Target"
-    },
-    "threshold": {
+    "tags": {
       "type": [
         "array",
         "null"
       ],
       "items": {
-        "$ref": "#/$defs/Rule"
+        "type": "string"
+      }
+    },
+    "target": {
+      "$ref": "#/$defs/Target"
+    },
+    "thresholds": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "$ref": "#/$defs/Threshold"
       }
     },
     "version": {
@@ -37,27 +61,33 @@ expression: actual
     "version",
     "name",
     "target",
-    "workload"
+    "workload",
+    "journeys"
   ],
   "$defs": {
-    "Rule": {
+    "Journey": {
       "type": "object",
       "properties": {
-        "action": {
+        "name": {
           "type": "string"
         },
-        "metric": {
-          "type": "string"
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Step"
+          }
         },
-        "threshold": {
+        "weight": {
           "type": "integer",
-          "format": "int32"
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0
         }
       },
       "required": [
-        "metric",
-        "threshold",
-        "action"
+        "name",
+        "weight",
+        "steps"
       ]
     },
     "Stage": {
@@ -77,6 +107,81 @@ expression: actual
         "rps"
       ]
     },
+    "Step": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "duration_ms": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            },
+            "type": {
+              "type": "string",
+              "const": "sleep"
+            }
+          },
+          "required": [
+            "type",
+            "duration_ms"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "body": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "headers": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "method": {
+              "$ref": "#/$defs/StepMethod"
+            },
+            "path": {
+              "type": "string"
+            },
+            "timeout_ms": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint32",
+              "minimum": 0
+            },
+            "type": {
+              "type": "string",
+              "const": "request"
+            }
+          },
+          "required": [
+            "type",
+            "method",
+            "path"
+          ]
+        }
+      ]
+    },
+    "StepMethod": {
+      "type": "string",
+      "enum": [
+        "GET",
+        "POST",
+        "PUT",
+        "PATCH",
+        "DELETE"
+      ]
+    },
     "Target": {
       "type": "object",
       "properties": {
@@ -91,10 +196,71 @@ expression: actual
           "additionalProperties": {
             "type": "string"
           }
+        },
+        "insecure_tls": {
+          "type": [
+            "boolean",
+            "null"
+          ]
         }
       },
       "required": [
         "base_url"
+      ]
+    },
+    "Threshold": {
+      "type": "object",
+      "properties": {
+        "metric": {
+          "type": "string"
+        },
+        "op": {
+          "$ref": "#/$defs/ThresholdOperator"
+        },
+        "scope": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ThresholdScope"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "value": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "required": [
+        "metric",
+        "op",
+        "value"
+      ]
+    },
+    "ThresholdOperator": {
+      "type": "string",
+      "enum": [
+        "lt",
+        "gt",
+        "lte",
+        "gte",
+        "eq"
+      ]
+    },
+    "ThresholdScope": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string"
+        },
+        "journey": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "endpoint",
+        "journey"
       ]
     },
     "Workload": {

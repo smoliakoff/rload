@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::PathBuf;
 use tempfile::tempdir;
-use libprotocol::{validate, Scenario};
+use libprotocol::{validate};
 
 #[test]
 fn it_check_generate_scenario() -> anyhow::Result<()> {
@@ -86,6 +86,23 @@ fn it_check_validate_with_invalid_scenario_validation_semantic_rules_empty_stage
         }
         other => panic!("Expected Json error, got: {other:?}"),
     }
+}#[test]
+fn it_check_validate_with_invalid_extended_scenario_validation_semantic_rules_wrong_steps()
+{
+    let scenario_file = fixture_path("invalid-extended-scenario.json");
+    let err = validate(scenario_file).unwrap_err();
+    match err {
+        libprotocol::ProtocolError::Validation(e) => {
+            insta::assert_debug_snapshot!(e);
+        }
+        other => panic!("Expected Json error, got: {other:?}"),
+    }
+}
+#[test]
+fn it_check_validate_with_valid_extended_scenario()
+{
+    let scenario_file = fixture_path("valid-extended-scenario.json");
+    validate(scenario_file).unwrap();
 }
 
 fn fixture_path(name: &str) -> PathBuf {

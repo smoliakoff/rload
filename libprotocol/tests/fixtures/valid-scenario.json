@@ -15,5 +15,12 @@
       }
     ]
   },
+  "journeys": [
+    {
+      "name": "default",
+      "weight": 1,
+      "steps": []
+    }
+  ],
   "threshold": null
 }

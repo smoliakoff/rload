@@ -1,6 +1,7 @@
 use std::io::Write;
 mod protocol_error;
 mod semantic_validator;
+mod schema;
 
 use anyhow::Context;
 use schemars::{JsonSchema, schema_for};
@@ -15,6 +16,7 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Value};
 pub use crate::protocol_error::{JsonError, ProtocolError, ValidationError};
 use crate::protocol_error::ValidationErrors;
+use crate::schema::Scenario;
 use crate::semantic_validator::Validator;
 
 pub type Result<T> = std::result::Result<T, ProtocolError>;
@@ -61,7 +63,8 @@ pub fn validate(path: impl AsRef<Path>) -> Result<()> {
         .with_rule(crate::semantic_validator::StagesRule::new())
         .with_rule(crate::semantic_validator::DurationRule::new())
         .with_rule(crate::semantic_validator::RpsRule::new())
-        .with_rule(crate::semantic_validator::VersionRule::new());
+        .with_rule(crate::semantic_validator::VersionRule::new())
+        .with_rule(crate::semantic_validator::JourneysRule::new());
     business.validate(&scenario_json, &mut errors);
 
     if !errors.is_empty() {
@@ -108,85 +111,9 @@ fn with_version(path: &Path, version: Option<&str>) -> anyhow::Result<PathBuf> {
 pub fn generate_scenario(out_path: impl AsRef<Path>, version: &str) -> anyhow::Result<()> {
     let path = out_path.as_ref();
     let mut default_scenario: Scenario = Scenario::default();
-    default_scenario.version = version.parse().unwrap_or(1);
+    default_scenario = default_scenario.set_version(version.parse().unwrap_or(1u16));
     fs::write(path, serde_json::to_string_pretty(&default_scenario)?)
         .context("Failed to write default scenario to file")
-}
-
-#[derive(Serialize, Deserialize, JsonSchema, Debug)]
-pub struct Scenario {
-    version: u16,
-    name: String,
-    target: Target,
-    workload: Workload,
-    threshold: Option<Vec<Rule>>,
-}
-impl Default for Scenario {
-    fn default() -> Self {
-        Self {
-            version: 1,
-            name: "default_scenario".to_string(),
-            target: Target::default(),
-            workload: Workload::default(),
-            threshold: None,
-        }
-    }
-}
-#[derive(Serialize, Deserialize, JsonSchema, Debug)]
-struct Target {
-    base_url: String,
-    default_headers: Option<BTreeMap<String, String>>,
-}
-impl Default for Target {
-    fn default() -> Self {
-        let mut headers: BTreeMap<String, String> = BTreeMap::new();
-        headers.insert("Content-Type".to_string(), "application/json".to_string());
-        Self {
-            base_url: "http://localhost:8080".parse().unwrap(),
-            default_headers: Some(headers),
-        }
-    }
-}
-#[derive(Serialize, Deserialize, JsonSchema, Debug)]
-struct Workload {
-    stages: Vec<Stage>,
-}
-impl Default for Workload {
-    fn default() -> Self {
-        Self {
-            stages: vec![Stage::default()],
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, JsonSchema, Debug)]
-struct Stage {
-    duration_sec: i32,
-    rps: i32,
-}
-impl Default for Stage {
-    fn default() -> Self {
-        Self {
-            duration_sec: 10,
-            rps: 100,
-        }
-    }
-}
-#[derive(Serialize, Deserialize, JsonSchema, Debug)]
-struct Rule {
-    metric: String,
-    threshold: i32,
-    action: String,
-}
-
-impl Default for Rule {
-    fn default() -> Self {
-        Self {
-            metric: "rule_metric".to_string(),
-            threshold: 10,
-            action: "rule_action".to_string(),
-        }
-    }
 }
 
 #[cfg(test)]

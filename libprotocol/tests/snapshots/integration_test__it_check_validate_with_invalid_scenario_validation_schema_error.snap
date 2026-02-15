@@ -10,6 +10,11 @@ ValidationErrors {
             message: "\"name\" is a required property",
         },
         ValidationError {
+            path: "",
+            code: "",
+            message: "\"journeys\" is a required property",
+        },
+        ValidationError {
             path: "/target",
             code: "",
             message: "\"base_url\" is a required property",

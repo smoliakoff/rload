@@ -1,0 +1,18 @@
+---
+source: libprotocol/tests/integration_test.rs
+expression: e
+---
+ValidationErrors {
+    items: [
+        ValidationError {
+            path: "/journeys/0/steps/0/duration_ms",
+            code: "invalid_value",
+            message: "duration_ms must be between 1 and 10000",
+        },
+        ValidationError {
+            path: "/journeys/0/steps/1/path",
+            code: "invalid_value",
+            message: "path required. path must be relative, starts withs '/'",
+        },
+    ],
+}

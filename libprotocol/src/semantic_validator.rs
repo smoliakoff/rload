@@ -1,7 +1,7 @@
-use std::iter;
 use predicates::Predicate;
-use crate::{Scenario, Stage, ValidationError};
-
+use crate::schema::{Journey, Scenario, Step};
+use crate::schema::Step::{Request, Sleep};
+use crate::ValidationError;
 
 enum ScenarioVersion {
     V1 = 1,
@@ -163,8 +163,117 @@ impl Rule for RpsRule {
         }
     }
 }
+pub(crate) struct JourneysRule {
+    message: String,
+}
+
+impl JourneysRule {
+    pub(crate) fn new() -> Self {
+        JourneysRule { message: "Journeys must be array of Journey. required ".to_string() }
+    }
+}
+
+impl Rule for JourneysRule {
+    fn validate(&self, scenario: &Scenario, errors: &mut Vec<ValidationError>) {
+        let journeys: &Vec<Journey> = &scenario.journeys;
+        if journeys.len() == 0 {
+            errors.push(ValidationError {
+                path: "/".to_string(),
+                code: "".to_string(),
+                message: self.message.clone(),
+            });
+            return;
+        }
+        for (i, journey) in journeys.iter().enumerate() {
+            if journey.name.is_empty() {
+                errors.push(ValidationError {
+                    path: std::format!("/journeys/{}/name", i),
+                    code: "invalid_value".to_string(),
+                    message: "name must be filled".to_string(),
+                })
+            }
+            if journey.weight < 1 || journey.weight > 10000 {
+                errors.push(ValidationError {
+                    path: std::format!("/journeys/{}/weight", i),
+                    code: "invalid_value".to_string(),
+                    message: "name  weight must be >= 1 and < 10000".to_string(),
+                })
+            }
+            for (stepIndex, step) in journey.steps.iter().enumerate() {
+                JourneyStepRule::validate(&JourneyStepRule::new(), &step, errors, i, stepIndex);
+            }
+        }
+    }
+}
 
 
+pub(crate) struct JourneyStepRule {
+    message: String
+}
+
+impl JourneyStepRule {
+    pub(crate) fn new() -> Self {
+        JourneyStepRule {
+            message: "journey step must be valid".to_string()
+        }
+    }
+}
+impl JourneyStepRule {
+    fn validate(&self, step: &Step, errors: &mut Vec<ValidationError>, journey_index: usize, step_index: usize) {
+        match step {
+            Sleep {duration_ms, .. } => {
+                if duration_ms == &0 || duration_ms > &10000 {
+                    errors.push(ValidationError {
+                        path: std::format!("/journeys/{}/steps/{}/duration_ms", journey_index, step_index),
+                        code: "invalid_value".to_string(),
+                        message: "duration_ms must be between 1 and 10000".to_string(),
+                    })
+                }
+            }
+            Request {
+                path,
+                body,
+                headers,
+                method: _method,
+                timeout_ms} => {
+                if let Some(timeout_ms) = timeout_ms {
+                    if timeout_ms == &0 || timeout_ms > &100000 {
+                        errors.push(ValidationError {
+                            path: std::format!("/journeys/{}/steps/{}/timeout_ms", journey_index, step_index),
+                            code: "invalid_value".to_string(),
+                            message: "timeout_ms must be between 1 and 100000".to_string(),
+                        })
+                    }
+                }
+                if !path.as_str().starts_with("/") {
+                    errors.push(ValidationError {
+                        path: std::format!("/journeys/{}/steps/{}/path", journey_index, step_index),
+                        code: "invalid_value".to_string(),
+                        message: "path required. path must be relative, starts withs '/'".to_string(),
+                    })
+                }
+                if let Some(headers) = headers {
+                    if headers.len() > 100 {
+                        errors.push(ValidationError {
+                            path: std::format!("/journeys/{}/steps/{}/headers", journey_index, step_index),
+                            code: "invalid_value".to_string(),
+                            message: "headers must be less than 100 items".to_string(),
+                        })
+                    }
+                }
+                if let Some(body) = body {
+                    if body.len() > 10000 {
+                        errors.push(ValidationError {
+                            path: std::format!("/journeys/{}/steps/{}/body", journey_index, step_index),
+                            code: "invalid_value".to_string(),
+                            message: "body must be less than 10000 characters".to_string(),
+                        })
+                    }
+                }
+            }
+        }
+    }
+}
 pub(crate) struct WebProtocolRule {
     message: String
 }

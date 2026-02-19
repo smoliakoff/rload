@@ -36,7 +36,7 @@ pub fn run_mock(scenario_path: impl AsRef<Path>,) {
 
     let report = run_engine::RunEngine::run_mock(&execution_plan, scenario);
 
-    println!("{:?}", report)
+    println!("{}", serde_json::to_string_pretty(&report).unwrap());
 }
 
 #[cfg(test)]

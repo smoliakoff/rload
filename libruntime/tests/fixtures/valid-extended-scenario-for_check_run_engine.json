@@ -1,0 +1,110 @@
+{
+  "version": 1,
+  "name": "default_scenario",
+  "target": {
+    "base_url": "http://localhost:8080",
+    "default_headers": {
+      "Content-Type": "application/json"
+    },
+    "insecure_tls": null
+  },
+  "workload": {
+    "stages": [
+      {
+        "duration_sec": 3,
+        "rps": 1000
+      }
+    ]
+  },
+  "journeys": [
+    {
+      "name": "default A",
+      "weight": 5,
+      "steps": [
+        {
+          "type": "request",
+          "method": "GET",
+          "path": "/test",
+          "headers": null,
+          "body": null,
+          "timeout_ms": 2000
+        },
+        {
+          "type": "sleep",
+          "duration_ms": 50
+        },
+        {
+          "type": "request",
+          "method": "PATCH",
+          "path": "/test/new",
+          "headers": null,
+          "body": null,
+          "timeout_ms": 2000
+        }
+      ]
+    },
+    {
+      "name": "default B",
+      "weight": 3,
+      "steps": [
+        {
+          "type": "request",
+          "method": "GET",
+          "path": "/test2",
+          "headers": null,
+          "body": null,
+          "timeout_ms": 3000
+        },
+        {
+          "type": "sleep",
+          "duration_ms": 70
+        },
+        {
+          "type": "request",
+          "method": "PUT",
+          "path": "/test777",
+          "headers": null,
+          "body": null,
+          "timeout_ms": 3000
+        }
+      ]
+    },
+    {
+      "name": "default C",
+      "weight": 2,
+      "steps": [
+        {
+          "type": "request",
+          "method": "GET",
+          "path": "/test3",
+          "headers": null,
+          "body": null,
+          "timeout_ms": null
+        },
+        {
+          "type": "sleep",
+          "duration_ms": 100
+        },
+        {
+          "type": "request",
+          "method": "DELETE",
+          "path": "/test/third",
+          "headers": null,
+          "body": null,
+          "timeout_ms": null
+        }
+      ]
+    }
+  ],
+  "description": null,
+  "tags": null,
+  "thresholds": [
+    {
+      "metric": "http.error_rate",
+      "op": "gt",
+      "value": 10,
+      "scope": null
+    }
+  ],
+  "metadata": null
+}

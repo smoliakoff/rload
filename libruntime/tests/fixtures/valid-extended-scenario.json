@@ -11,7 +11,7 @@
   "workload": {
     "stages": [
       {
-        "duration_sec": 10,
+        "duration_sec": 3,
         "rps": 100
       }
     ]
@@ -19,11 +19,11 @@
   "journeys": [
     {
       "name": "default A",
-      "weight": 7,
+      "weight": 5,
       "steps": [
         {
           "type": "sleep",
-          "duration_ms": 1000
+          "duration_ms": 100
         },
         {
           "type": "request",
@@ -41,7 +41,7 @@
       "steps": [
         {
           "type": "sleep",
-          "duration_ms": 1000
+          "duration_ms": 100
         },
         {
           "type": "request",
@@ -50,6 +50,32 @@
           "headers": null,
           "body": null,
           "timeout_ms": 3000
+        },
+        {
+          "type": "request",
+          "method": "PUT",
+          "path": "/test777",
+          "headers": null,
+          "body": null,
+          "timeout_ms": 3000
+        }
+      ]
+    },
+    {
+      "name": "default C",
+      "weight": 2,
+      "steps": [
+        {
+          "type": "sleep",
+          "duration_ms": 100
+        },
+        {
+          "type": "request",
+          "method": "GET",
+          "path": "/test3",
+          "headers": null,
+          "body": null,
+          "timeout_ms": null
         }
       ]
     }

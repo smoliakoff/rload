@@ -1,0 +1,74 @@
+---
+source: libruntime/src/execution_plan.rs
+expression: execution_plan
+---
+ExecutionPlan {
+    scenario_name: "default_scenario",
+    version: "1",
+    base_url: "http://localhost:8080",
+    journeys: [
+        Journey {
+            name: "default A",
+            weight: 5,
+            steps: [
+                Sleep {
+                    duration_ms: 1000,
+                },
+                Request {
+                    method: GET,
+                    path: "/test",
+                    headers: None,
+                    body: None,
+                    timeout_ms: None,
+                },
+            ],
+        },
+        Journey {
+            name: "default B",
+            weight: 3,
+            steps: [
+                Sleep {
+                    duration_ms: 1000,
+                },
+                Request {
+                    method: GET,
+                    path: "/test2",
+                    headers: None,
+                    body: None,
+                    timeout_ms: None,
+                },
+            ],
+        },
+        Journey {
+            name: "default C",
+            weight: 2,
+            steps: [
+                Sleep {
+                    duration_ms: 1000,
+                },
+                Request {
+                    method: GET,
+                    path: "/test2",
+                    headers: None,
+                    body: None,
+                    timeout_ms: None,
+                },
+            ],
+        },
+    ],
+    weight_sampler: WeightSampler {
+        seed: "",
+        total_weight: 10,
+        journey_ids: [
+            0,
+            1,
+            2,
+        ],
+        cumulative_ends: [
+            5,
+            8,
+            10,
+        ],
+    },
+    limits: None,
+}

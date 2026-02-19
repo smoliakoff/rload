@@ -1,0 +1,19 @@
+---
+source: libruntime/src/dry_runner.rs
+expression: report
+---
+DryRunReport {
+    iterations: 100,
+    seed: 12345,
+    journeys: 100,
+    steps: StepsCounting {
+        request_count: 130,
+        sleep_count: 100,
+    },
+    endpoints: {
+        "GET /test": 55,
+        "GET /test2": 30,
+        "GET /test3": 15,
+        "PUT /test777": 30,
+    },
+}

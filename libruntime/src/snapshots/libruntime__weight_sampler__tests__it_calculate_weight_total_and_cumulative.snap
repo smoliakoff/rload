@@ -1,0 +1,18 @@
+---
+source: libruntime/src/weight_sampler.rs
+expression: weight_sampler
+---
+WeightSampler {
+    seed: "",
+    total_weight: 10,
+    journey_ids: [
+        0,
+        1,
+        2,
+    ],
+    cumulative_ends: [
+        5,
+        8,
+        10,
+    ],
+}

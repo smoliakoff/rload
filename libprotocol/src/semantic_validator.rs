@@ -178,8 +178,8 @@ impl Rule for JourneysRule {
         let journeys: &Vec<Journey> = &scenario.journeys;
         if journeys.len() == 0 {
             errors.push(ValidationError {
-                path: "/".to_string(),
-                code: "".to_string(),
+                path: "/journeys".to_string(),
+                code: "missing_field".to_string(),
                 message: self.message.clone(),
             });
             return;
@@ -196,7 +196,7 @@ impl Rule for JourneysRule {
                 errors.push(ValidationError {
                     path: std::format!("/journeys/{}/weight", i),
                     code: "invalid_value".to_string(),
-                    message: "name  weight must be >= 1 and < 10000".to_string(),
+                    message: "weight must be >= 1 and < 10000".to_string(),
                 })
             }
             for (stepIndex, step) in journey.steps.iter().enumerate() {
@@ -249,7 +249,7 @@ impl JourneyStepRule {
                     errors.push(ValidationError {
                         path: std::format!("/journeys/{}/steps/{}/path", journey_index, step_index),
                         code: "invalid_value".to_string(),
-                        message: "path required. path must be relative, starts withs '/'".to_string(),
+                        message: "path required. path must be relative, starts with '/'".to_string(),
                     })
                 }
                 if let Some(headers) = headers {
@@ -281,7 +281,7 @@ pub(crate) struct WebProtocolRule {
 impl WebProtocolRule {
     pub(crate) fn new() -> Self {
         WebProtocolRule {
-            message: "url must start with http or https".to_string()
+            message: "url must starts with http or https".to_string()
         }
     }
 }

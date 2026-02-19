@@ -6,7 +6,6 @@ fn main() {
             eprintln!("{}", err);
         eprintln!("{}", exit_code(&err));
         std::process::exit(exit_code(&err));
-
     }
 }
 

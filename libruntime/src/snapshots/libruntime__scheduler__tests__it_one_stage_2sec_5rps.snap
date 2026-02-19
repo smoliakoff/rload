@@ -1,0 +1,84 @@
+---
+source: libruntime/src/scheduler.rs
+expression: ticks
+---
+[
+    Tick {
+        tick_index: 1,
+        stage_index: 0,
+        planned_at_ms: 200,
+        target_rps: 5,
+    },
+    Tick {
+        tick_index: 2,
+        stage_index: 0,
+        planned_at_ms: 400,
+        target_rps: 5,
+    },
+    Tick {
+        tick_index: 3,
+        stage_index: 0,
+        planned_at_ms: 600,
+        target_rps: 5,
+    },
+    Tick {
+        tick_index: 4,
+        stage_index: 0,
+        planned_at_ms: 800,
+        target_rps: 5,
+    },
+    Tick {
+        tick_index: 5,
+        stage_index: 0,
+        planned_at_ms: 1000,
+        target_rps: 5,
+    },
+    Tick {
+        tick_index: 6,
+        stage_index: 0,
+        planned_at_ms: 1200,
+        target_rps: 5,
+    },
+    Tick {
+        tick_index: 7,
+        stage_index: 0,
+        planned_at_ms: 1400,
+        target_rps: 5,
+    },
+    Tick {
+        tick_index: 8,
+        stage_index: 0,
+        planned_at_ms: 1600,
+        target_rps: 5,
+    },
+    Tick {
+        tick_index: 9,
+        stage_index: 0,
+        planned_at_ms: 1800,
+        target_rps: 5,
+    },
+    Tick {
+        tick_index: 10,
+        stage_index: 0,
+        planned_at_ms: 2000,
+        target_rps: 5,
+    },
+    Tick {
+        tick_index: 11,
+        stage_index: 1,
+        planned_at_ms: 2333,
+        target_rps: 3,
+    },
+    Tick {
+        tick_index: 12,
+        stage_index: 1,
+        planned_at_ms: 2666,
+        target_rps: 3,
+    },
+    Tick {
+        tick_index: 13,
+        stage_index: 1,
+        planned_at_ms: 2999,
+        target_rps: 3,
+    },
+]

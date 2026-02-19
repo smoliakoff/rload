@@ -1,7 +1,7 @@
 use std::io::Write;
 mod protocol_error;
 mod semantic_validator;
-mod schema;
+pub mod schema;
 
 use anyhow::Context;
 use schemars::{JsonSchema, schema_for};
@@ -16,10 +16,17 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Value};
 pub use crate::protocol_error::{JsonError, ProtocolError, ValidationError};
 use crate::protocol_error::ValidationErrors;
-use crate::schema::Scenario;
+pub use crate::schema::Scenario;
 use crate::semantic_validator::Validator;
 
 pub type Result<T> = std::result::Result<T, ProtocolError>;
+
+pub fn parse_scenario(path: impl AsRef<Path>) -> Scenario {
+    let path = path.as_ref();
+    let json_content = fs::read_to_string(path).unwrap();
+
+    serde_json::from_str(&json_content).unwrap()
+}
 
 
 pub fn validate(path: impl AsRef<Path>) -> Result<()> {

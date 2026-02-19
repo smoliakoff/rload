@@ -6,16 +6,16 @@ use crate::schema::Step::Request;
 use crate::ValidationError;
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug)]
-pub(crate) struct Scenario {
-    pub(crate) version: u16,
-    pub(crate) name: String,
-    pub(crate) target: Target,
-    pub(crate) workload: Workload,
-    pub(crate) journeys: Vec<Journey>,
-    pub(crate) description: Option<String>,
-    pub(crate) tags: Option<Vec<String>>,
-    pub(crate) thresholds: Option<Vec<Threshold>>,
-    pub(crate) metadata: Option<()>
+pub struct Scenario {
+    pub  version: u16,
+    pub name: String,
+    pub  target: Target,
+    pub  workload: Workload,
+    pub  journeys: Vec<Journey>,
+    pub  description: Option<String>,
+    pub  tags: Option<Vec<String>>,
+    pub  thresholds: Option<Vec<Threshold>>,
+    pub  metadata: Option<()>
 }
 impl Default for Scenario {
     fn default() -> Self {
@@ -40,10 +40,10 @@ impl Scenario {
 }
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug)]
-pub(crate)struct Target {
-    pub(crate) base_url: String,
-    pub(crate) default_headers: Option<BTreeMap<String, String>>,
-    pub(crate) insecure_tls: Option<bool>
+pub struct Target {
+    pub  base_url: String,
+    pub  default_headers: Option<BTreeMap<String, String>>,
+    pub  insecure_tls: Option<bool>
 }
 impl Default for Target {
     fn default() -> Self {
@@ -56,9 +56,9 @@ impl Default for Target {
         }
     }
 }
-#[derive(Serialize, Deserialize, JsonSchema, Debug)]
-pub(crate)struct Workload {
-    pub(crate) stages: Vec<Stage>,
+#[derive(Serialize, Deserialize, JsonSchema, Debug, Clone)]
+pub struct Workload {
+    pub  stages: Vec<Stage>,
 }
 impl Default for Workload {
     fn default() -> Self {
@@ -68,10 +68,24 @@ impl Default for Workload {
     }
 }
 
-#[derive(Serialize, Deserialize, JsonSchema, Debug)]
-pub(crate)struct Stage {
-    pub(crate) duration_sec: i32,
-    pub(crate) rps: i32,
+impl Workload {
+    pub fn get_rps_avg(&self) -> f64 {
+        if self.stages.is_empty() {
+            return 0.0;
+        }
+
+        self.stages
+            .iter()
+            .map(|stage| stage.rps.max(0) as f64)
+            .sum::<f64>()
+            / (self.stages.len() as f64)
+    }
+}
+
+#[derive(Serialize, Deserialize, JsonSchema, Debug, Clone)]
+pub struct Stage {
+    pub  duration_sec: i32,
+    pub  rps: i32,
 }
 impl Default for Stage {
     fn default() -> Self {
@@ -82,11 +96,11 @@ impl Default for Stage {
     }
 }
 
-#[derive(Serialize, Deserialize, JsonSchema, Debug)]
-pub(crate)struct Journey {
-    pub(crate) name: String,
-    pub(crate) weight: u16,
-    pub(crate) steps: Vec<Step>,
+#[derive(Serialize, Deserialize, JsonSchema, Debug, Clone)]
+pub struct Journey {
+    pub  name: String,
+    pub  weight: u16,
+    pub  steps: Vec<Step>,
 }
 
 impl Default for Journey {
@@ -102,7 +116,7 @@ impl Default for Journey {
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug, Clone, Copy)]
 #[serde(rename_all = "UPPERCASE")]
-pub(crate) enum StepMethod {
+pub  enum StepMethod {
     GET,
     POST,
     PUT,
@@ -125,9 +139,9 @@ impl TryFrom<String> for StepMethod {
     }
 }
 
-#[derive(Serialize, Deserialize, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, JsonSchema, Debug, Clone)]
 #[serde(tag = "type", rename_all = "snake_case")]
-pub(crate) enum Step {
+pub enum Step {
     Sleep {
         duration_ms: u32,
     },
@@ -159,7 +173,7 @@ impl Step {
 }
 #[derive(Serialize, Deserialize, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
-pub(crate) enum ThresholdOperator {
+pub  enum ThresholdOperator {
     Lt,
     gt,
     Lte,
@@ -168,11 +182,11 @@ pub(crate) enum ThresholdOperator {
 }
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug)]
-pub(crate)struct Threshold {
-    pub(crate) metric: String,
-    pub(crate) op: ThresholdOperator,
-    pub(crate) value: i32,
-    pub(crate) scope: Option<ThresholdScope>,
+pub struct Threshold {
+    pub  metric: String,
+    pub  op: ThresholdOperator,
+    pub  value: i32,
+    pub  scope: Option<ThresholdScope>,
 }
 
 impl Default for Threshold {
@@ -188,7 +202,7 @@ impl Default for Threshold {
 
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug)]
-pub(crate)struct ThresholdScope {
-    pub(crate) endpoint: String,
-    pub(crate) journey: String,
+pub struct ThresholdScope {
+    pub  endpoint: String,
+    pub  journey: String,
 }

@@ -16,6 +16,21 @@ pub fn it_check_validate_command_for_valid_scenario() {
 }
 
 #[test]
+pub fn it_check_dry_run_command_for_valid_scenario() {
+    let scenario_path = fixture_path("valid-extended-scenario.json");
+
+    let mut cmd = Command::new(cargo::cargo_bin!("lt_engine"));
+
+    cmd
+        .arg("dry-run")
+        .arg(format!("--scenario={}", scenario_path.display()))
+        .arg("--iterations=100")
+        .assert()
+        .code(0);
+    insta::assert_debug_snapshot!(cmd.output())
+}
+
+#[test]
 pub fn it_check_validate_command_for_invalid_scenario() {
     let scenario_path = fixture_path("invalid-schema-error-scenario.json");
 

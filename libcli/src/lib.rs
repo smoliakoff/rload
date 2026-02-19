@@ -13,7 +13,49 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Commands {
-    /// Generates a scenario example with default values
+    /// Dry-run a scenario
+    #[command(arg_required_else_help = true)]
+    DryRun {
+        #[arg(
+            short,
+            long,
+            required = true,
+            require_equals = true,
+        )]
+        scenario: String,
+        #[arg(
+            short,
+            long,
+            default_missing_value = "1000"
+        )]
+        iterations: u32,
+        #[arg(
+            short = 'e',
+            long,
+            default_value_t = 1000u32
+        )]
+        seed: u32,
+        #[arg(
+            short,
+            long,
+            default_value_t = String::from("json")
+        )]
+        output: String,
+        #[arg(
+            short,
+            long,
+            default_value_t = 1000u32
+        )]
+        limit_steps: u32,
+        /// Print plan to console
+        #[arg(
+            short,
+            long,
+            require_equals = false,
+        )]
+        print_plan: bool,
+
+    },
     #[command(arg_required_else_help = false)]
     Generate {
         #[arg(
@@ -86,6 +128,9 @@ pub fn run() -> anyhow::Result<()>{
         },
         Commands::Validate { scenario } => {
             Ok(libprotocol::validate(scenario.unwrap())?)
+        },
+        Commands::DryRun { scenario, seed, iterations, .. } => {
+            Ok(libruntime::dry_run(scenario, seed, iterations))
         },
 
     }

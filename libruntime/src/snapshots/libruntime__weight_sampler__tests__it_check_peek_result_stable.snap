@@ -1,0 +1,36 @@
+---
+source: libruntime/src/weight_sampler.rs
+expression: result
+---
+[
+    Some(
+        2,
+    ),
+    Some(
+        2,
+    ),
+    Some(
+        2,
+    ),
+    Some(
+        2,
+    ),
+    Some(
+        2,
+    ),
+    Some(
+        2,
+    ),
+    Some(
+        2,
+    ),
+    Some(
+        2,
+    ),
+    Some(
+        2,
+    ),
+    Some(
+        2,
+    ),
+]

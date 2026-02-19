@@ -1,0 +1,146 @@
+---
+source: libruntime/src/run_engine.rs
+expression: report
+---
+RunReport {
+    scenario: Scenario {
+        name: "default_scenario",
+        version: "1",
+    },
+    run: Run {
+        mode: "",
+        seed: "",
+        total_ticks: 3000,
+        duration_sec_planned: 3,
+    },
+    ticks_arrival: TicksArrival {
+        total: 3000,
+        executed: 3000,
+        missed: 0,
+        missed_ratio: 0.0,
+        tick_interval_ms: 0,
+        first_tick_ms: 0,
+        last_tick_ms: 0,
+    },
+    rps: Rps {
+        planned_avg: 1000,
+        achieved_avg: 1000,
+        by_stage: 0,
+    },
+    journeys: [],
+    requests: Requests {
+        total: 3000,
+        ok: 3000,
+        error: 0,
+    },
+    latency_ms: LatencyMs {
+        min: 0,
+        max: 99,
+        avg: 48,
+    },
+    time: Time {
+        planned_start_ms: 0,
+        planned_end_ms: 0,
+        planned_duration_ms: 3000,
+        planned_duration_sec: 3.0,
+        real_time_duration_sec: 3,
+    },
+    missed_tick_count: 0,
+    by_endpoint: {
+        "DELETE-\"/test/third\"": EndpointStats {
+            request: Requests {
+                total: 265,
+                ok: 265,
+                error: 0,
+            },
+            latency_ms: LatencyMs {
+                min: 0,
+                max: 98,
+                avg: 49,
+            },
+            achieved_rps: 0,
+        },
+        "GET-\"/test\"": EndpointStats {
+            request: Requests {
+                total: 847,
+                ok: 847,
+                error: 0,
+            },
+            latency_ms: LatencyMs {
+                min: 0,
+                max: 99,
+                avg: 49,
+            },
+            achieved_rps: 0,
+        },
+        "GET-\"/test2\"": EndpointStats {
+            request: Requests {
+                total: 483,
+                ok: 483,
+                error: 0,
+            },
+            latency_ms: LatencyMs {
+                min: 0,
+                max: 99,
+                avg: 49,
+            },
+            achieved_rps: 0,
+        },
+        "GET-\"/test3\"": EndpointStats {
+            request: Requests {
+                total: 334,
+                ok: 334,
+                error: 0,
+            },
+            latency_ms: LatencyMs {
+                min: 0,
+                max: 99,
+                avg: 49,
+            },
+            achieved_rps: 0,
+        },
+        "PATCH-\"/test/new\"": EndpointStats {
+            request: Requests {
+                total: 681,
+                ok: 681,
+                error: 0,
+            },
+            latency_ms: LatencyMs {
+                min: 0,
+                max: 99,
+                avg: 49,
+            },
+            achieved_rps: 0,
+        },
+        "PUT-\"/test777\"": EndpointStats {
+            request: Requests {
+                total: 384,
+                ok: 384,
+                error: 0,
+            },
+            latency_ms: LatencyMs {
+                min: 0,
+                max: 99,
+                avg: 49,
+            },
+            achieved_rps: 0,
+        },
+    },
+    by_journey: [
+        ByJourney {
+            id: 1,
+            key: "default_scenario",
+            per_vu: 19642,
+            per_request: 3000,
+        },
+    ],
+    sleep: 87650,
+    error_and_quality: ErrorAndQuality {
+        http_error_rate: 0.0,
+    },
+    vus: VuUtilization {
+        count: 65535,
+        no_ready_ticks: 0,
+        no_ready_ratio: 0.0,
+    },
+}

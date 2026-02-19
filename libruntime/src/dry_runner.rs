@@ -1,9 +1,7 @@
-use std::collections::{BTreeMap, HashMap};
-use std::fmt::format;
-use std::ops::Range;
+use crate::execution_plan::ExecutionPlan;
 use libprotocol::schema::Step;
 use serde::{Deserialize, Serialize};
-use crate::execution_plan::ExecutionPlan;
+use std::collections::BTreeMap;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct StepsCounting {
@@ -32,7 +30,7 @@ pub fn dry_run(mut plan: ExecutionPlan, iterations: u32, seed: u32) -> DryRunRep
         endpoints: BTreeMap::new()
     };
 
-    let mut sampler = &mut plan.weight_sampler;
+    let sampler = &mut plan.weight_sampler;
     sampler.seed = seed.to_string();
 
     for i in 1..=iterations {
@@ -64,10 +62,10 @@ fn run_plan(plan: &ExecutionPlan, seed: u32, report: &mut DryRunReport, iter_ind
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
-    use libprotocol::Scenario;
     use crate::dry_runner::dry_run;
     use crate::execution_plan::ExecutionPlan;
+    use libprotocol::Scenario;
+    use std::path::PathBuf;
 
     #[test]
     fn dry_run_scenario() {

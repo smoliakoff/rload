@@ -1,21 +1,21 @@
+use crate::execution_plan::ExecutionPlan;
+use crate::metrics::MetricsAggregator;
+use crate::scheduler::Scheduler;
+use crate::vu_runner;
+use crate::vu_runner::NextAction::{NotReady, Ready};
+use crate::vu_runner::{Ctx, ExecutorAbstract, ExecutorMock, VUState, VuPool, VuRuntime};
+use libprotocol::schema::Workload;
+use serde::Serialize;
 use std::collections::BTreeMap;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
-use serde::Serialize;
-use libprotocol::schema::Workload;
-use crate::execution_plan::ExecutionPlan;
-use crate::metrics::MetricsAggregator;
-use crate::scheduler::{Scheduler};
-use crate::vu_runner;
-use crate::vu_runner::{Ctx, ExecutorAbstract, ExecutorMock, VUState, VuPool, VuRuntime};
-use crate::vu_runner::NextAction::{NotReady, Ready};
 
-struct RunEngine {
+pub(crate) struct RunEngine {
 
 }
 
 impl RunEngine {
-    fn run_mock(plan: &ExecutionPlan, scenario: libprotocol::schema::Scenario) -> RunReport {
+    pub fn run_mock(plan: &ExecutionPlan, scenario: &libprotocol::schema::Scenario) -> RunReport {
         let vus = 65535;
         let start_time_ms = Instant::now();
         let scheduler: &mut Scheduler = &mut Scheduler::new(&scenario.workload);
@@ -23,7 +23,8 @@ impl RunEngine {
         let mut run_report = RunReport::new(scheduler);
         let mut metrics = MetricsAggregator::new();
         let sampler = &plan.weight_sampler;
-        let runner_ctx = Ctx{};
+        #[allow(dead_code)]
+        let _runner_ctx = Ctx{};
         let mock_executor = ExecutorMock{};
         let runtime = VuRuntime{};
         let mut journey_per_vu: BTreeMap<usize, u64> = BTreeMap::new();
@@ -70,14 +71,13 @@ impl RunEngine {
             let vu = pool.get_mut(vu_idx).unwrap();
 
             match runtime.next_action(plan, vu, now) {
-                NotReady(..) => { /* это баг pick_ready_vu */ missed_ticks += 1; run_report.vus.no_ready_ticks += 1; }
+                NotReady(_next_ready_at) => { /* это баг pick_ready_vu */ missed_ticks += 1; run_report.vus.no_ready_ticks += 1; }
                 vu_runner::NextAction::CompletedIteration => { /* no-op */ }
                 Ready(req) => {
                     let res = mock_executor.execute(plan, &req, total_ticks).unwrap();
                     metrics.consume(res);
                     runtime.on_request_executed(plan, vu, now);
-                },
-                _ => {}
+                }
             }
             last_tick_ms = start_tick.elapsed();
         }
@@ -121,7 +121,7 @@ impl RunEngine {
         run_report.vus.count = vus as u64;
         run_report.vus.no_ready_ratio = (run_report.vus.no_ready_ticks as f64 / total_ticks as f64).round();
 
-        run_report.scenario = Scenario{ name: scenario.name, version: scenario.version.to_string() };
+        run_report.scenario = Scenario{ name: scenario.name.clone(), version: scenario.version.to_string() };
 
         run_report.run.total_ticks = total_ticks;
         run_report.run.duration_sec_planned = scheduler.planned_duration_sec as u64;
@@ -144,7 +144,7 @@ impl RunEngine {
 }
 
 #[derive(Debug, Serialize)]
-struct RunReport {
+pub struct RunReport {
     scenario: Scenario,
     run: Run,
     ticks_arrival: TicksArrival,
@@ -256,15 +256,7 @@ pub struct Time {
     pub planned_duration_sec: f64,
     pub real_time_duration_sec: u64
 }
-#[derive(Debug, Serialize)]
-pub struct RpsByStage {
-    pub stage_index: usize,
-    pub target_rps: u64,
-    pub planned_ticks: u64,
-    pub executed_ticks: u64,
-    pub missed_ticks: u64,
-    pub achieved_rps: u64,
-}
+
 #[derive(Debug, Serialize)]
 pub struct Rps {
     pub planned_avg: u64,
@@ -289,14 +281,7 @@ struct ByJourney {
     pub per_vu: u64,
     pub per_request: u64,
 }
-#[derive(Debug, Serialize)]
-struct ByEndpoint {
-    pub key: String,
-    pub total: u64,
-    pub ok: u64,
-    pub error: u64,
-    pub avg_latency_ms: u64
-}
+
 #[derive(Debug, Serialize)]
 pub(crate) struct LatencyMs {
     pub min: u64,
@@ -330,11 +315,12 @@ pub(crate) struct Requests {
     pub error: u64
 }
 
+#[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
-    use libprotocol::Scenario;
     use crate::execution_plan::ExecutionPlan;
     use crate::run_engine::RunEngine;
+    use libprotocol::Scenario;
+    use std::path::PathBuf;
 
     #[test]
     fn it_run_mock_and_check_run_report() {
@@ -343,7 +329,7 @@ mod tests {
         let scenario: Scenario = serde_json::from_str(&content).unwrap();
         let execution_plan = ExecutionPlan::from(&scenario);
 
-        let mut report = RunEngine::run_mock(&execution_plan, scenario);
+        let mut report = RunEngine::run_mock(&execution_plan, &scenario);
         assert_eq!(true, report.time.real_time_duration_sec >= 3);
         report.time.real_time_duration_sec = 3; // flaky test
         insta::assert_debug_snapshot!(report);

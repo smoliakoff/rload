@@ -1,7 +1,7 @@
-use predicates::Predicate;
-use crate::schema::{Journey, Scenario, Step};
 use crate::schema::Step::{Request, Sleep};
+use crate::schema::{Journey, Scenario, Step};
 use crate::ValidationError;
+use predicates::Predicate;
 
 enum ScenarioVersion {
     V1 = 1,
@@ -96,7 +96,7 @@ impl DurationRule {
 
 impl Rule for DurationRule {
     fn validate(&self, scenario: &Scenario, errors: &mut Vec<ValidationError>) {
-        for (i, stage) in scenario.clone().workload.stages.iter().enumerate() {
+        for (i, stage) in scenario.workload.stages.iter().enumerate() {
             if stage.duration_sec < 10 || stage.duration_sec > 86400 {
                 errors.push(ValidationError {
                     path: std::format!("/workload/stages/{}/duration_sec", i),
@@ -109,26 +109,16 @@ impl Rule for DurationRule {
 }
 
 pub(crate) struct VersionRule {
-    message: String,
 }
 
 impl VersionRule {
     pub(crate) fn new() -> Self {
-        VersionRule { message: "version must be integer > 0 and <= 50_000 ".to_string() }
+        VersionRule {}
     }
 }
 
 impl Rule for VersionRule {
     fn validate(&self, scenario: &Scenario, errors: &mut Vec<ValidationError>) {
-        let version: u16 = scenario.version as u16;
-        let mut push_error = || {
-            errors.push(ValidationError {
-                path: "/version".to_string(),
-                code: "".to_string(),
-                message: self.message.clone(),
-            })
-        };
-
         if ScenarioVersion::try_from(scenario.version).is_err() {
             errors.push(ValidationError {
                 path: "/version".to_string(),
@@ -152,7 +142,7 @@ impl RpsRule {
 
 impl Rule for RpsRule {
     fn validate(&self, scenario: &Scenario, errors: &mut Vec<ValidationError>) {
-        for (i, stage) in scenario.clone().workload.stages.iter().enumerate() {
+        for (i, stage) in scenario.workload.stages.iter().enumerate() {
             if stage.rps == 0 || stage.rps > 10000 {
                 errors.push(ValidationError {
                     path: std::format!("/workload/stages/{}/rps", i),
@@ -199,8 +189,8 @@ impl Rule for JourneysRule {
                     message: "weight must be >= 1 and < 10000".to_string(),
                 })
             }
-            for (stepIndex, step) in journey.steps.iter().enumerate() {
-                JourneyStepRule::validate(&JourneyStepRule::new(), &step, errors, i, stepIndex);
+            for (step_index, step) in journey.steps.iter().enumerate() {
+                JourneyStepRule::validate(&JourneyStepRule::new(), &step, errors, i, step_index);
             }
         }
     }
@@ -208,14 +198,11 @@ impl Rule for JourneysRule {
 
 
 pub(crate) struct JourneyStepRule {
-    message: String
 }
 
 impl JourneyStepRule {
     pub(crate) fn new() -> Self {
-        JourneyStepRule {
-            message: "journey step must be valid".to_string()
-        }
+        JourneyStepRule {}
     }
 }
 impl JourneyStepRule {
@@ -232,10 +219,11 @@ impl JourneyStepRule {
             }
             Request {
                 path,
-                body,
-                headers,
+                body: _body,
+                headers: _headers,
                 method: _method,
-                timeout_ms} => {
+                timeout_ms
+            } => {
                 if let Some(timeout_ms) = timeout_ms {
                     if timeout_ms == &0 || timeout_ms > &100000 {
                         errors.push(ValidationError {
@@ -252,7 +240,7 @@ impl JourneyStepRule {
                         message: "path required. path must be relative, starts with '/'".to_string(),
                     })
                 }
-                if let Some(headers) = headers {
+                if let Some(headers) = _headers {
                     if headers.len() > 100 {
                         errors.push(ValidationError {
                             path: std::format!("/journeys/{}/steps/{}/headers", journey_index, step_index),
@@ -261,7 +249,7 @@ impl JourneyStepRule {
                         })
                     }
                 }
-                if let Some(body) = body {
+                if let Some(body) = _body {
                     if body.len() > 10000 {
                         errors.push(ValidationError {
                             path: std::format!("/journeys/{}/steps/{}/body", journey_index, step_index),

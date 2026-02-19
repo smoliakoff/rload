@@ -1,21 +1,17 @@
-use std::any::{Any, TypeId};
-use std::cmp::PartialEq;
-use std::thread::sleep;
-use std::time::Duration;
-use sha2::{Digest, Sha256};
-use libprotocol::schema::Step::{Request, Sleep};
-use libprotocol::schema::StepMethod;
 use crate::execution_plan::ExecutionPlan;
 use crate::vu_runner::NextAction::NotReady;
+use libprotocol::schema::Step::{Request, Sleep};
+use libprotocol::schema::StepMethod;
+use sha2::{Digest, Sha256};
+use std::cmp::PartialEq;
 
 pub struct VuPool {
     vus: Vec<VUState>,
-    cursor: usize,
 }
 
 impl VuPool {
     pub fn new(vus: Vec<VUState>) -> Self {
-        VuPool { vus, cursor: 0 }
+        VuPool { vus }
     }
     pub fn pick_ready_vu(&self, now_ms: u64) -> Option<usize> {
         for (idx, vu) in self.vus.iter().enumerate() {
@@ -35,6 +31,7 @@ impl VuPool {
 }
 
 pub struct VUState{
+    #[allow(dead_code)]
     pub vu_id: u32,
     pub journey_id: u32,
     pub step_index: usize, // (на каком шаге стоим)
@@ -47,26 +44,12 @@ pub struct Ctx {
 
 }
 
-struct VuIterationStats {
-    sleep_steps: u64,
-    request_steps: u64,
-    sleep_ms_total: u64,
-    requests: Vec<ResponseResult>
-}
-
-// pub(crate) struct RequestEvent {
-//     pub(crate) journey_name: String,
-//     pub(crate) endpoint_key: String,
-//     ok: bool,
-//     pub(crate) latency_ms: u32,
-//     error_kind: Option<ErrorType>
-// 
-// }
-
 pub struct RequestSpec {
+    #[allow(dead_code)]
     pub(crate) method: StepMethod,
     pub path: String,
     pub endpoint_key: String,
+    #[allow(dead_code)]
     pub timeout_ms: u64,
     pub journey_id: u64
 }
@@ -124,7 +107,8 @@ impl VuRuntime {
                     vu.total_sleep_ms += *duration_ms as u64;
                     continue;
                 },
-                Request { method, path, headers, body, timeout_ms } => {
+                #[allow(dead_code)]
+                Request { method, path, headers: _headers, body: _body, timeout_ms } => {
                     NextAction::Ready(RequestSpec {
                         method: *method,
                         path: path.clone(),
@@ -140,16 +124,6 @@ impl VuRuntime {
             }
         }
         next_action
-    }
-
-    pub fn run_one_iteration(vu_id: u32, journey: libprotocol::schema::Journey, ctx: Ctx, executor: Box<dyn ExecutorAbstract>) -> VuIterationStats {
-
-        VuIterationStats {
-            sleep_steps: 0,
-            request_steps: 0,
-            sleep_ms_total: 0,
-            requests: Vec::new()
-        }
     }
 }
 
@@ -186,13 +160,23 @@ impl ExecutorAbstract for ExecutorMock {
 pub struct ResponseResult {
     pub ok: bool,
     pub(crate) latency_ms: u64,
+    #[allow(dead_code)]
     pub error_kind: Option<ErrorType>,
     pub(crate) endpoint_key: String,
     pub journey_name: String,
     pub journey_id: u64
 }
 
-enum ErrorType {
+pub enum ErrorType {
+    #[allow(dead_code)]
     Timeout,
+    #[allow(dead_code)]
     ConnectionError
+}
+
+
+#[test]
+fn it_works() {
+    let _executor = ExecutorMock {};
+    assert_eq!(2 + 2, 4);
 }

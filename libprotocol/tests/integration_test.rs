@@ -1,7 +1,7 @@
+use libprotocol::validate;
 use std::fs;
 use std::path::PathBuf;
 use tempfile::tempdir;
-use libprotocol::{validate};
 
 #[test]
 fn it_check_generate_scenario() -> anyhow::Result<()> {

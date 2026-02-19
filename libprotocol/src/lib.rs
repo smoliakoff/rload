@@ -3,21 +3,16 @@ mod protocol_error;
 mod semantic_validator;
 pub mod schema;
 
-use anyhow::Context;
-use schemars::{JsonSchema, schema_for};
-use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
-use std::fmt::Debug;
-use std::{any, fs};
-use std::io::stderr;
-use std::net::ToSocketAddrs;
-use std::ops::Deref;
-use std::path::{Path, PathBuf};
-use serde_json::{json, Value};
-pub use crate::protocol_error::{JsonError, ProtocolError, ValidationError};
 use crate::protocol_error::ValidationErrors;
+pub use crate::protocol_error::{JsonError, ProtocolError, ValidationError};
 pub use crate::schema::Scenario;
 use crate::semantic_validator::Validator;
+use anyhow::Context;
+use schemars::schema_for;
+use serde_json::Value;
+use std::fs;
+use std::io::stderr;
+use std::path::{Path, PathBuf};
 
 pub type Result<T> = std::result::Result<T, ProtocolError>;
 
@@ -75,7 +70,7 @@ pub fn validate(path: impl AsRef<Path>) -> Result<()> {
     business.validate(&scenario_json, &mut errors);
 
     if !errors.is_empty() {
-        writeln!(stderr(),"{}", format!("Scenario is invalid ({} errors)", errors.len()));
+        writeln!(stderr(), "{}", format!("Scenario is invalid ({} errors)", errors.len())).expect("Something went wrong while print stderr");
         return Err(ValidationErrors { items: errors }.into());
     }
     println!("ok");

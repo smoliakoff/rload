@@ -1,6 +1,5 @@
-use std::path::Path;
 use clap::{Parser, Subcommand, ValueEnum};
-
+use std::path::Path;
 
 /// A fictional versioning CLI
 #[derive(Debug, Parser)] // requires `derive` feature
@@ -13,6 +12,17 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Commands {
+    /// Run mock a scenario
+    #[command(arg_required_else_help = true)]
+    RunMock {
+        #[arg(
+            short,
+            long,
+            required = true,
+            require_equals = true,
+        )]
+        scenario: String,
+    },
     /// Dry-run a scenario
     #[command(arg_required_else_help = true)]
     DryRun {
@@ -131,6 +141,9 @@ pub fn run() -> anyhow::Result<()>{
         },
         Commands::DryRun { scenario, seed, iterations, .. } => {
             Ok(libruntime::dry_run(scenario, seed, iterations))
+        },
+        Commands::RunMock { scenario} => {
+            Ok(libruntime::run_mock(scenario))
         },
 
     }

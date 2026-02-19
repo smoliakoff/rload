@@ -1,8 +1,7 @@
-use std::cmp::{max, min};
-use std::collections::{BTreeMap, HashMap};
-use serde::Serialize;
 use crate::run_engine::{EndpointStats, LatencyMs};
-use crate::vu_runner::{ ResponseResult};
+use crate::vu_runner::ResponseResult;
+use std::cmp::{max, min};
+use std::collections::BTreeMap;
 
 #[derive(Debug, serde::Serialize)]
 pub struct MetricsAggregator {
@@ -22,7 +21,7 @@ pub struct MetricsAggregator {
 }
 
 impl MetricsAggregator {
-    pub(crate) fn new() -> Self{
+    pub fn new() -> Self{
         Self {
             total_requests: 0,
             ok_requests: 0,
@@ -37,7 +36,7 @@ impl MetricsAggregator {
     }
     pub fn consume(&mut self, request_event: ResponseResult) {
         self.total_requests += 1;
-        if (request_event.ok) {
+        if request_event.ok {
             self.ok_requests += 1;
         }
         if !request_event.ok {
@@ -67,7 +66,7 @@ impl MetricsAggregator {
             }
         }).or_insert(EndpointStats::default());
         
-        self.by_journey.entry(request_event.journey_name).and_modify(|(journey_id, journey_count)| *journey_count += 1)
+        self.by_journey.entry(request_event.journey_name).and_modify(|(_journey_id, journey_count)| *journey_count += 1)
             .or_insert((request_event.journey_id as usize, 1));
     }
 }

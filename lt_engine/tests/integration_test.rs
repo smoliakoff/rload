@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use assert_cmd::{cargo, Command};
+use std::path::PathBuf;
 
 
 #[test]

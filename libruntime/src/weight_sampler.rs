@@ -1,6 +1,5 @@
-use std::ptr::hash;
-use sha2::{Digest, Sha256};
 use libprotocol::Scenario;
+use sha2::{Digest, Sha256};
 
 #[derive(Debug, Clone)]
 pub struct WeightSampler {
@@ -74,10 +73,9 @@ impl From<&Scenario> for WeightSampler {
 
 #[cfg(test)]
 mod tests {
-    use std::fmt::format;
-    use std::path::PathBuf;
-    use libprotocol::Scenario;
     use crate::weight_sampler::WeightSampler;
+    use libprotocol::Scenario;
+    use std::path::PathBuf;
 
     #[test]
     fn it_calculate_weight_total_and_cumulative() {

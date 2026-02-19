@@ -1,13 +1,14 @@
+use libprotocol::schema::{Stage, Workload};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::str;
-use serde::{Deserialize, Serialize};
-use libprotocol::schema::{Stage, Workload};
 
 pub struct Scheduler {
     stages: Vec<Stage>,
     current_index: u64,
     current_stage_index: usize,
     current_step_index: usize,
+    #[allow(dead_code)]
     start_time: u64,
     stage_max_ticks: HashMap<usize, i32>,
     total_time: u64,
@@ -81,9 +82,10 @@ pub struct Tick {
     pub target_rps:u32
 }
 
+#[cfg(test)]
 mod tests {
-    use libprotocol::schema::{Stage, Workload};
     use crate::scheduler::{Scheduler, Tick};
+    use libprotocol::schema::{Stage, Workload};
 
     #[test]
     fn it_one_stage_2sec_5rps() {

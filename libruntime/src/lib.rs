@@ -1,4 +1,4 @@
-mod execution_plan;
+pub mod execution_plan;
 mod weight_sampler;
 mod dry_runner;
 mod scheduler;
@@ -6,11 +6,11 @@ mod vu_runner;
 mod run_engine;
 mod metrics;
 
+use crate::execution_plan::ExecutionPlan;
+pub use libprotocol::schema::Journey;
+use libprotocol::Scenario;
 use std::path::Path;
 use std::sync::Arc;
-use libprotocol::Scenario;
-pub use libprotocol::schema::Journey;
-use crate::execution_plan::ExecutionPlan;
 
 pub struct AppContext {
     pub scenario: Arc<Scenario>
@@ -29,15 +29,21 @@ pub fn dry_run(scenario_path: impl AsRef<Path>, seed: u32, iterations: u32) {
 
     println!("{:?}", report)
 }
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
+
+pub fn run_mock(scenario_path: impl AsRef<Path>,) {
+    let scenario: &Scenario = &libprotocol::parse_scenario(&scenario_path);
+    let execution_plan = ExecutionPlan::from(scenario);
+
+    let report = run_engine::RunEngine::run_mock(&execution_plan, scenario);
+
+    println!("{:?}", report)
 }
 
 #[cfg(test)]
 mod tests {
-    use std::collections::{HashMap, HashSet};
-    use std::path::PathBuf;
     use super::*;
+    use std::collections::HashMap;
+    use std::path::PathBuf;
 
     #[test]
     fn it_works() {
@@ -60,12 +66,13 @@ mod tests {
             plan.journeys.get(i as usize)
                 .expect("invalid journey_id")
                 .weight as i32
-        };
+        }
+
         fn sampler_name_for(i: i32, plan: &ExecutionPlan) -> &str {
             plan.journeys.get(i as usize)
                 .expect("invalid journey_id")
                 .name.as_str()
-        };
+        }
 
         let tolerance = 0.02; // 2%
 

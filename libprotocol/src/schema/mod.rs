@@ -1,9 +1,9 @@
-use std::collections::{BTreeMap, HashMap};
-use std::string::ToString;
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
 use crate::schema::Step::Request;
 use crate::ValidationError;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+use std::collections::{BTreeMap, HashMap};
+use std::string::ToString;
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug)]
 pub struct Scenario {
@@ -175,7 +175,7 @@ impl Step {
 #[serde(rename_all = "snake_case")]
 pub  enum ThresholdOperator {
     Lt,
-    gt,
+    Gt,
     Lte,
     Gte,
     Eq
@@ -193,7 +193,7 @@ impl Default for Threshold {
     fn default() -> Self {
         Self {
             metric: "http.error_rate".to_string(),
-            op: ThresholdOperator::gt,
+            op: ThresholdOperator::Gt,
             value: 10,
             scope: None,
         }

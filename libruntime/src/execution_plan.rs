@@ -1,8 +1,8 @@
-use libprotocol::schema::{Journey, Scenario};
 use crate::weight_sampler::WeightSampler;
+use libprotocol::schema::{Journey, Scenario};
 
 #[derive(Debug, Clone)]
-pub(crate) struct ExecutionPlan {
+pub struct ExecutionPlan {
     pub scenario_name: String,
     pub version: String,
     pub base_url: String,
@@ -44,9 +44,9 @@ pub(crate) fn calculate_cumulative_ends(weights: &mut [u16]) -> Vec<u32> {
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
-    use libprotocol::Scenario;
     use crate::execution_plan::{calculate_cumulative_ends, ExecutionPlan};
+    use libprotocol::Scenario;
+    use std::path::PathBuf;
 
     #[test]
     fn it_check_calculate_cumulative_ends() {

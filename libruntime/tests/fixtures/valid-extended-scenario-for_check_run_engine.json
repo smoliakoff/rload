@@ -13,6 +13,10 @@
       {
         "duration_sec": 3,
         "rps": 1000
+      },
+      {
+        "duration_sec": 3,
+        "rps": 1000
       }
     ]
   },

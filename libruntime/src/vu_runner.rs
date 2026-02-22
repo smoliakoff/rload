@@ -158,7 +158,7 @@ impl ExecutorAbstract for ExecutorMock {
             endpoint_key: request.endpoint_key.clone(),
             journey_name: plan.scenario_name.clone(),
             journey_id: request.journey_id,
-            stage_index: 0,
+            stage_index: request.stage_index,
         })
     }
 }
@@ -205,7 +205,7 @@ impl ExecutorAbstract for ExecutorHttp {
                     journey_name: "test".to_string(),
                     journey_id: request.journey_id,
                     // status_code: Some(status) если добавишь поле
-                    stage_index: 0,
+                    stage_index: request.stage_index,
                 })
             }
             Err(e) => {
@@ -225,7 +225,7 @@ impl ExecutorAbstract for ExecutorHttp {
                     endpoint_key: request.endpoint_key.clone(),
                     journey_name: "test".to_string(),
                     journey_id: request.journey_id,
-                    stage_index: 0,
+                    stage_index: request.stage_index,
                 })
             }
         }

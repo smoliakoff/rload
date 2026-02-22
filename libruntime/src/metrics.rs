@@ -13,6 +13,7 @@ pub struct MetricsAggregator {
     pub latency_min: u64,
     pub latency_max:u64,
     pub latency_sum: u64,
+    pub latency_avg: u64,
 
     ///  map endpoint_key → count, ok, err, latency_sum
     pub by_endpoint: BTreeMap<String, EndpointStats>,
@@ -35,6 +36,7 @@ impl MetricsAggregator {
             by_endpoint: BTreeMap::new(),
             by_stage: BTreeMap::new(),
             by_journey: BTreeMap::new(),
+            latency_avg: 0,
         }
     }
     pub fn consume(&mut self, request_event: ResponseResult, now_ms: u64) {
@@ -76,9 +78,11 @@ impl MetricsAggregator {
                 endpoint_metrics.request.error +=1;
             }
             endpoint_metrics.latency_ms = LatencyMs {
+                sum: request_event.latency_ms +  endpoint_metrics.latency_ms.sum,
                 min: min(endpoint_metrics.latency_ms.min, request_event.latency_ms),
                 max: max(endpoint_metrics.latency_ms.max, request_event.latency_ms),
-                avg: Some((endpoint_metrics.latency_ms.max + endpoint_metrics.latency_ms.min)/2),
+                avg: (request_event.latency_ms +  endpoint_metrics.latency_ms.sum)
+                    .checked_div(endpoint_metrics.request.total).unwrap_or(0),
             }
         }).or_insert(EndpointStats::default());
 
@@ -91,7 +95,13 @@ impl MetricsAggregator {
             let secs = (stage_rps.stage_duration_ms as f64 / 1000.0).max(0.001);
             stage_rps.achieved_rps = (stage_rps.request_count as f64 / secs) as u64;
 
-        }).or_insert(ByStage::default());
+        }).or_insert(ByStage{
+            stage_index: request_event.stage_index,
+            achieved_rps: 0,
+            request_count: 1,
+            stage_duration_ms: 0,
+            stage_started_ms: now_ms,
+        });
         
         self.by_journey.entry(request_event.journey_name).and_modify(|(_journey_id, journey_count)| *journey_count += 1)
             .or_insert((request_event.journey_id as usize, 1));

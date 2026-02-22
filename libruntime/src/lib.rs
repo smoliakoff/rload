@@ -11,6 +11,7 @@ pub use libprotocol::schema::Journey;
 use libprotocol::Scenario;
 use std::path::Path;
 use std::sync::Arc;
+use crate::dry_runner::DryRunMode;
 
 pub struct AppContext {
     pub scenario: Arc<Scenario>
@@ -22,19 +23,25 @@ pub fn plan(scenario: &Scenario, seed: u32) -> ExecutionPlan {
 
     plan
 }
-pub fn dry_run(scenario_path: impl AsRef<Path>, seed: u32, iterations: u32) {
+pub async fn dry_run(scenario_path: impl AsRef<Path>, seed: u32, iterations: u32, is_simulated: bool) {
+
     let scenario: &Scenario = &libprotocol::parse_scenario(&scenario_path);
+    let mode = match is_simulated {
+        true => DryRunMode::Simulated(scenario),
+        false => DryRunMode::PlanOnly
+    };
     libprotocol::validate(&scenario_path).expect("scenario must be valid");
-    let report = dry_runner::dry_run(ExecutionPlan::from(scenario), iterations, seed);
+    let report = dry_runner::dry_run(ExecutionPlan::from(scenario), iterations, seed, mode).await;
 
     println!("{:?}", report)
 }
 
-pub fn run_mock(scenario_path: impl AsRef<Path>,) {
-    let scenario: &Scenario = &libprotocol::parse_scenario(&scenario_path);
-    let execution_plan = ExecutionPlan::from(scenario);
+pub async fn run(scenario_path: impl AsRef<Path>, is_mock: Option<bool>) {
+    let scenario = &libprotocol::parse_scenario(&scenario_path);
+    let execution_plan: ExecutionPlan = ExecutionPlan::from(scenario);
 
-    let report = run_engine::RunEngine::run_mock(&execution_plan, scenario);
+    let report = run_engine::RunEngine::new(Some(is_mock.unwrap()), Some(true))
+        .run(&execution_plan, scenario).await;
 
     println!("{}", serde_json::to_string_pretty(&report).unwrap());
 }
@@ -46,7 +53,7 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
-    fn it_works() {
+    fn it_works_run_mock() {
         let fixture = fixture_path("valid-extended-scenario.json");
         let scenario = libprotocol::parse_scenario(&fixture);
         let mut counts: HashMap<i32, u32> = HashMap::new();

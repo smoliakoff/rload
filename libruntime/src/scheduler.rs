@@ -5,13 +5,11 @@ use std::str;
 
 pub struct Scheduler {
     stages: Vec<Stage>,
-    current_index: u64,
     current_stage_index: usize,
     current_step_index: usize,
     #[allow(dead_code)]
     start_time: u64,
     stage_max_ticks: HashMap<usize, i32>,
-    total_time: u64,
     pub(crate) planned_duration_ms: u64,
     pub(crate) planned_duration_sec: f64,
 }
@@ -27,14 +25,12 @@ impl Scheduler {
 
         Scheduler {
             stages: workload.stages.clone(),
-            current_index: 0,
             current_stage_index: 0,
             current_step_index: 0,
             start_time: 0,
             stage_max_ticks,
             planned_duration_ms: planned_duration_ms as u64,
             planned_duration_sec: planned_duration_sec as f64,
-            total_time: 0,
         }
     }
     pub fn get_stage_max_ticks(&self, stage_index: usize) -> Option<i32> {
@@ -45,7 +41,7 @@ impl Iterator for &mut Scheduler {
     type Item = Tick;
 
     fn next(&mut self) -> Option<Self::Item> {
-
+        let stage_start = tokio::time::Instant::now();
         if let Some(max) = self.get_stage_max_ticks(self.current_stage_index) {
             if self.current_step_index >= max as usize {
                 self.current_step_index = 0;
@@ -59,14 +55,13 @@ impl Iterator for &mut Scheduler {
 
         let stage = self.stages.get(self.current_stage_index).expect("stage not found");
 
-        let current_tick_delay = 1000 / stage.rps;
-        self.total_time += current_tick_delay as u64;
-        let planed_at_ms = self.total_time;
+        let tick_in_stage = self.current_step_index as u64;
 
-        self.current_index+=1;
+        let planed_at_ms = stage_start.elapsed().as_millis() as u64 + tick_in_stage*1000/(stage.rps as u64);
+
         self.current_step_index+=1;
         Some(Tick{
-            tick_index: self.current_index,
+            tick_index: tick_in_stage,
             stage_index: self.current_stage_index as u64,
             planned_at_ms: planed_at_ms,
             target_rps: stage.rps as u32,
@@ -119,9 +114,10 @@ mod tests {
         let scheduler: &mut Scheduler = &mut Scheduler::new(&workload);
         let delta = 200;
         let mut prev_planned_time = 0;
-        for tick in &mut scheduler.into_iter() {
-
-            assert_eq!(delta, tick.planned_at_ms - prev_planned_time);
+        for (i, tick) in &mut scheduler.into_iter().enumerate() {
+            if i != 0 {
+                assert_eq!(delta, tick.planned_at_ms - prev_planned_time);
+            }
             prev_planned_time = tick.planned_at_ms
         }
     }

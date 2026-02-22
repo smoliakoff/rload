@@ -1,7 +1,8 @@
 
-fn main() {
+#[tokio::main]
+async fn main() {
 
-    if let Err(err) =  libcli::run() {
+    if let Err(err) =  libcli::run().await {
 
             eprintln!("{}", err);
         eprintln!("{}", exit_code(&err));

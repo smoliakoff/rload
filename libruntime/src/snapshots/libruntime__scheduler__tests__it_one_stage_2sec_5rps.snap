@@ -4,6 +4,12 @@ expression: ticks
 ---
 [
     Tick {
+        tick_index: 0,
+        stage_index: 0,
+        planned_at_ms: 0,
+        target_rps: 5,
+    },
+    Tick {
         tick_index: 1,
         stage_index: 0,
         planned_at_ms: 200,
@@ -58,27 +64,21 @@ expression: ticks
         target_rps: 5,
     },
     Tick {
-        tick_index: 10,
-        stage_index: 0,
-        planned_at_ms: 2000,
-        target_rps: 5,
-    },
-    Tick {
-        tick_index: 11,
+        tick_index: 0,
         stage_index: 1,
-        planned_at_ms: 2333,
+        planned_at_ms: 0,
         target_rps: 3,
     },
     Tick {
-        tick_index: 12,
+        tick_index: 1,
         stage_index: 1,
-        planned_at_ms: 2666,
+        planned_at_ms: 333,
         target_rps: 3,
     },
     Tick {
-        tick_index: 13,
+        tick_index: 2,
         stage_index: 1,
-        planned_at_ms: 2999,
+        planned_at_ms: 666,
         target_rps: 3,
     },
 ]

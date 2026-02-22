@@ -1,0 +1,11 @@
+[package]
+name = "test_support"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum = "0.8.8"
+http = "1.4.0"
+tokio = "1.49.0"
+oneshot = "0.1.13"
+reqwest = "0.13.2"

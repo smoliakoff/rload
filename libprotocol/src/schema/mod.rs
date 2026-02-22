@@ -8,7 +8,7 @@ use std::string::ToString;
 #[derive(Serialize, Deserialize, JsonSchema, Debug)]
 pub struct Scenario {
     pub  version: u16,
-    pub name: String,
+    pub  name: String,
     pub  target: Target,
     pub  workload: Workload,
     pub  journeys: Vec<Journey>,

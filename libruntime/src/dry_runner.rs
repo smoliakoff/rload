@@ -2,11 +2,23 @@ use crate::execution_plan::ExecutionPlan;
 use libprotocol::schema::Step;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use libprotocol::Scenario;
+use crate::run_engine::{RunEngine, RunReport};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct StepsCounting {
     pub request_count: i32,
     pub sleep_count: i32,
+}
+pub enum DryRunMode<'a> {
+    PlanOnly,
+    Simulated(&'a Scenario),
+}
+
+#[derive(Debug, Serialize)]
+pub enum DryRunResult {
+    PlanOnly(DryRunReport),
+    Simulated(RunReport),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -20,7 +32,19 @@ pub struct DryRunReport {
 
 }
 
-pub fn dry_run(mut plan: ExecutionPlan, iterations: u32, seed: u32) -> DryRunReport {
+pub async fn dry_run(plan: ExecutionPlan, iterations: u32, seed: u32, mode: DryRunMode<'_>) -> DryRunResult {
+
+    match mode {
+        DryRunMode::PlanOnly => {
+            DryRunResult::PlanOnly(dry_run_plan_only(plan, iterations, seed))
+        }
+        DryRunMode::Simulated(scenario) => {
+            DryRunResult::Simulated(dry_run_simulated(plan, iterations, seed, scenario).await)
+        }
+    }
+}
+
+pub fn dry_run_plan_only(mut plan: ExecutionPlan, iterations: u32, seed: u32) -> DryRunReport {
 
     let mut report = DryRunReport {
         iterations,
@@ -40,6 +64,12 @@ pub fn dry_run(mut plan: ExecutionPlan, iterations: u32, seed: u32) -> DryRunRep
 
     report
 }
+
+pub async fn dry_run_simulated(plan: ExecutionPlan, _iterations: u32, _seed: u32, scenario: &Scenario) -> RunReport {
+    RunEngine::new(Some(false), Some(false)).run(&plan, &scenario).await
+}
+
+
 
 fn run_plan(plan: &ExecutionPlan, seed: u32, report: &mut DryRunReport, iter_index: u32) {
 
@@ -62,16 +92,16 @@ fn run_plan(plan: &ExecutionPlan, seed: u32, report: &mut DryRunReport, iter_ind
 
 #[cfg(test)]
 mod tests {
-    use crate::dry_runner::dry_run;
+    use crate::dry_runner::{dry_run, DryRunMode};
     use crate::execution_plan::ExecutionPlan;
     use libprotocol::Scenario;
     use std::path::PathBuf;
 
-    #[test]
-    fn dry_run_scenario() {
+    #[tokio::test]
+    async fn dry_run_scenario() {
         let scenario: &Scenario = &libprotocol::parse_scenario(fixture_path("valid-extended-scenario.json"));
         let plan = ExecutionPlan::from(scenario);
-        let report = dry_run(plan, 100, 12345);
+        let report = dry_run(plan, 100, 12345, DryRunMode::PlanOnly).await;
        insta::assert_debug_snapshot!(report)
     }
 

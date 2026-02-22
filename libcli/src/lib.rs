@@ -12,6 +12,17 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Commands {
+    /// Run a scenario
+    #[command(arg_required_else_help = true)]
+    Run{
+        #[arg(
+            short,
+            long,
+            required = true,
+            require_equals = true,
+        )]
+        scenario: String,
+    },
     /// Run mock a scenario
     #[command(arg_required_else_help = true)]
     RunMock {
@@ -51,6 +62,12 @@ enum Commands {
             default_value_t = String::from("json")
         )]
         output: String,
+        #[arg(
+            short = 'm',
+            long,
+            default_value_t = false
+        )]
+        is_simulated: bool,
         #[arg(
             short,
             long,
@@ -126,7 +143,7 @@ impl std::fmt::Display for ColorWhen {
     }
 }
 
-pub fn run() -> anyhow::Result<()>{
+pub async fn run() -> anyhow::Result<()>{
     let args = Cli::parse();
 
     match args.command {
@@ -139,11 +156,14 @@ pub fn run() -> anyhow::Result<()>{
         Commands::Validate { scenario } => {
             Ok(libprotocol::validate(scenario.unwrap())?)
         },
-        Commands::DryRun { scenario, seed, iterations, .. } => {
-            Ok(libruntime::dry_run(scenario, seed, iterations))
+        Commands::DryRun { scenario, seed, iterations, is_simulated, .. } => {
+            Ok(libruntime::dry_run(scenario, seed, iterations, is_simulated).await)
         },
         Commands::RunMock { scenario} => {
-            Ok(libruntime::run_mock(scenario))
+            Ok(libruntime::run(scenario, Some(true)).await)
+        },
+        Commands::Run { scenario} => {
+            Ok(libruntime::run(scenario, Some(false)).await)
         },
 
     }

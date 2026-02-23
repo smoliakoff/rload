@@ -1,6 +1,5 @@
-use crate::run_engine::{ByStage, EndpointStats, LatencyMs, HIGHEST_US, LOWEST_US, SIGFIG};
+use crate::run_engine::{ByStage, EndpointStats, HIGHEST_US, LOWEST_US, SIGFIG};
 use crate::vu_runner::ResponseResult;
-use std::cmp::{max, min};
 use std::collections::BTreeMap;
 use hdrhistogram::Histogram;
 
@@ -12,12 +11,11 @@ pub struct MetricsAggregator {
 
     pub overall_latency: Histogram<u64>,
     pub latency_by_stage: BTreeMap<u64, Histogram<u64>>,
-
+    pub latency_by_endpoint: BTreeMap<String, Histogram<u64>>,
     pub latency: Vec<u64>,
     pub latency_min: u64,
     pub latency_max:u64,
     pub latency_sum: u64,
-    pub latency_avg: u64,
 
     ///  map endpoint_key → count, ok, err, latency_sum
     pub by_endpoint: BTreeMap<String, EndpointStats>,
@@ -40,9 +38,9 @@ impl MetricsAggregator {
             by_endpoint: BTreeMap::new(),
             by_stage: BTreeMap::new(),
             by_journey: BTreeMap::new(),
-            latency_avg: 0,
             overall_latency: Histogram::new_with_bounds(LOWEST_US, HIGHEST_US, SIGFIG).expect("histogram over_all creation failed"),
             latency_by_stage: BTreeMap::new(),
+            latency_by_endpoint: Default::default(),
         }
     }
 
@@ -71,7 +69,7 @@ impl MetricsAggregator {
 
         self.record_overall_latency(request_event.latency_us);
 
-        self.by_endpoint.entry(request_event.endpoint_key).and_modify(|endpoint_metrics| {
+        self.by_endpoint.entry(request_event.endpoint_key.clone()).and_modify(|endpoint_metrics| {
             endpoint_metrics.request.total +=1;
             if endpoint_metrics.request.total == 1 {
                 endpoint_metrics.first_at_ms = now_ms;
@@ -90,14 +88,15 @@ impl MetricsAggregator {
             } else {
                 endpoint_metrics.request.error +=1;
             }
-            endpoint_metrics.latency_ms = LatencyMs {
-                sum: request_event.latency_ms +  endpoint_metrics.latency_ms.sum,
-                min: min(endpoint_metrics.latency_ms.min, request_event.latency_ms),
-                max: max(endpoint_metrics.latency_ms.max, request_event.latency_ms),
-                avg: (request_event.latency_ms +  endpoint_metrics.latency_ms.sum)
-                    .checked_div(endpoint_metrics.request.total).unwrap_or(0),
-            }
         }).or_insert(EndpointStats::default());
+
+        self.latency_by_endpoint.entry(request_event.endpoint_key).and_modify(|hist| {
+            let _ = hist.record(request_event.latency_us).expect("cant crate record in hist for by endpoint");
+        }).or_insert({
+            let mut hist = Histogram::new_with_bounds(LOWEST_US, HIGHEST_US, SIGFIG).expect("histogram by endpoint creation failed");
+            let _ = hist.record(request_event.latency_us);
+            hist
+        });
 
         self.by_stage.entry(request_event.stage_index).and_modify(|stage_rps| {
             stage_rps.request_count += 1;
@@ -109,15 +108,15 @@ impl MetricsAggregator {
                 stage_index: request_event.stage_index,
                 achieved_rps: 0,
                 request_count: 1,
-                stage_duration_ms: 0,
                 stage_started_ms: request_event.stage_start_ms,
+                stage_duration_ms: 0,
             }
         );
         self.latency_by_stage.entry(request_event.stage_index).and_modify(|hist| {
-            hist.record(request_event.latency_us);
+            hist.record(request_event.latency_us).expect("cant crate record in hist for by stage");
         }).or_insert({
             let mut hist = Histogram::new_with_bounds(LOWEST_US, HIGHEST_US, SIGFIG).expect("histogram by stage creation failed");
-            hist.record(request_event.latency_us);
+            hist.record(request_event.latency_us).expect("cant crate record in hist for by endpoint");
             hist
         });
         

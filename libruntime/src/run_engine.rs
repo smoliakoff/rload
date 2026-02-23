@@ -340,16 +340,20 @@ impl RunEngine {
         run_report.requests.ok = metrics.ok_requests;
         run_report.requests.error = metrics.error_requests;
 
-        // Latency
-        run_report.latency_ms = LatencyMs{
-            sum: metrics.latency_sum,
-            min: metrics.latency_min,
-            max: metrics.latency_max,
-            avg: metrics.latency_avg,
-        };
         // Latency by stage
         run_report.latency_by_stage = metrics.latency_by_stage.iter()
             .map(|(stage_index, hist)| (*stage_index, LatencySummary::summarize(hist))).collect();
+
+        // Latency by endpoint
+        for (key, rec) in run_report.by_endpoint.iter_mut() {
+            let lat_summ = metrics
+                .latency_by_endpoint
+                .get(key)
+                .expect("histogram missing for endpoint");
+
+            rec.latency_summary = LatencySummary::summarize(lat_summ);
+        }
+
 
         run_report.latency_overall_summary = LatencySummary::summarize(&metrics.overall_latency);
 
@@ -369,7 +373,6 @@ pub struct RunReport {
     rps: Rps,
     journeys: Vec<Journey>,
     requests: Requests,
-    latency_ms: LatencyMs,
     latency_overall_summary: LatencySummary,
     latency_by_stage: BTreeMap<u64, LatencySummary>,
     time: Time,
@@ -386,49 +389,12 @@ impl RunReport {
     pub fn new(scheduler: &Scheduler) -> Self {
     Self{
         scenario: Scenario { name: "".to_string(), version: "".to_string() },
-        run: Run {
-            mode: "".to_string(),
-            seed: "".to_string(),
-            total_ticks: 0,
-            duration_sec_planned: 0,
-        },
-        ticks_arrival: TicksArrival {
-            total: 0,
-            executed: 0,
-            missed: 0,
-            missed_ratio: 0.0,
-            tick_interval_ms: 0,
-            first_tick_ms: 0,
-            last_tick_ms: 0,
-        },
-        rps: Rps {
-            planned_avg: 0,
-            achieved_avg: 0,
-            achieved_avg_including_drain: 0,
-            by_stage: BTreeMap::new(),
-        },
+        run: Default::default(),
+        ticks_arrival: Default::default(),
+        rps: Default::default(),
         journeys: vec![],
-        requests: Requests {
-            total: 0,
-            ok: 0,
-            error: 0,
-        },
-        latency_ms: LatencyMs {
-            sum: 0,
-            min: 0,
-            max: 0,
-            avg: 0,
-        },
-        latency_overall_summary: LatencySummary {
-            count: 0,
-            min: 0,
-            max: 0,
-            mean: 0,
-            p50: 0,
-            p90: 0,
-            p95: 0,
-            p99: 0,
-        },
+        requests: Default::default(),
+        latency_overall_summary: Default::default(),
         latency_by_stage: Default::default(),
         time: Time {
             planned_start_ms: 0,
@@ -457,8 +423,8 @@ pub struct ByStage {
     pub stage_index: u64,
     pub achieved_rps: u64,
     pub request_count: u64,
-    pub stage_duration_ms: u64,
     pub stage_started_ms: u64,
+    pub stage_duration_ms: u64,
 }
 impl Default for ByStage {
     fn default() -> ByStage {
@@ -466,15 +432,15 @@ impl Default for ByStage {
             stage_index: 0,
             achieved_rps: 0,
             request_count: 1,
-            stage_duration_ms: 0,
             stage_started_ms: 0,
+            stage_duration_ms: 0,
         }
     }
 }
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Copy, Clone)]
 pub struct EndpointStats {
     pub request: Requests,
-    pub latency_ms: LatencyMs,
+    pub latency_summary: LatencySummary,
     pub achieved_rps: f64,
     pub first_at_ms: u64,
     pub last_at_ms: u64,
@@ -488,12 +454,7 @@ impl EndpointStats {
                 ok: 0,
                 error: 0,
             },
-            latency_ms: LatencyMs {
-                sum: 0,
-                min: u64::MAX,
-                max: 0,
-                avg: 0,
-            },
+            latency_summary: Default::default(),
             achieved_rps: 0.0,
             first_at_ms: 0,
             last_at_ms: 0,
@@ -514,14 +475,14 @@ pub struct Time {
     pub planned_duration_sec: f64,
     pub real_time_duration_sec: u64
 }
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Default)]
 pub struct Rps {
     pub planned_avg: u64,
     pub achieved_avg: u64,
     pub achieved_avg_including_drain: u64,
     pub by_stage: BTreeMap<u64, ByStage>,
 }
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Default)]
 pub struct TicksArrival {
     pub total: u64,
     pub executed: u64,
@@ -538,14 +499,8 @@ struct ByJourney {
     pub per_vu: u64,
     pub per_request: u64,
 }
-#[derive(Debug, Serialize)]
-pub(crate) struct LatencyMs {
-    pub sum: u64,
-    pub min: u64,
-    pub max: u64,
-    pub avg: u64
-}
-#[derive(Debug, Serialize)]
+
+#[derive(Debug, Serialize, Copy, Clone, Default)]
 pub struct LatencySummary { count: u64, min: u64, max: u64, mean: u64, p50: u64, p90: u64, p95: u64, p99: u64 }
 
 impl LatencySummary {
@@ -568,7 +523,7 @@ struct Scenario {
     name: String,
     version: String
 }
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Default)]
 struct Run {
     mode: String,
     seed: String,
@@ -582,7 +537,7 @@ struct Journey {
     picked: u32,
     share: String
 }
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Copy, Clone, Default)]
 pub(crate) struct Requests {
     pub total: u64,
     pub ok: u64,
@@ -605,8 +560,6 @@ mod tests {
 
         let mut report = RunEngine::new(Some(true), Some(false)).run(&execution_plan, &scenario).await;
         report.time.real_time_duration_sec = 3; // flaky test
-        report.latency_ms.min = 0; // flaky test
-        report.latency_ms.sum = 0; // flaky test
         insta::assert_debug_snapshot!(report);
         println!("{}", serde_json::to_string_pretty(&report).unwrap());
     }

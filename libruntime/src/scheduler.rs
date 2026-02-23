@@ -2,7 +2,6 @@ use libprotocol::schema::{Stage, Workload};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::str;
-use tokio::time::Instant;
 
 pub struct Scheduler {
     stages: Vec<Stage>,

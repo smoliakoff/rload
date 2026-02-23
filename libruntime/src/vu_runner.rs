@@ -53,7 +53,8 @@ pub struct RequestSpec {
     #[allow(dead_code)]
     pub timeout_ms: u64,
     pub journey_id: u64,
-    pub stage_index: u64
+    pub stage_start_ms: u64,
+    pub stage_index: u64,
 }
 
 pub struct VuRuntime {
@@ -112,6 +113,7 @@ impl VuRuntime {
                         endpoint_key: format!("{:?}-{:?}", method, path).to_string(),
                         timeout_ms: timeout_ms.unwrap_or(0) as u64,
                         journey_id: vu.journey_id as u64,
+                        stage_start_ms: now_ms,
                         stage_index: 0,
                     })
                 }
@@ -159,8 +161,8 @@ impl ExecutorAbstract for ExecutorMock {
             endpoint_key: request.endpoint_key.clone(),
             journey_name: plan.scenario_name.clone(),
             journey_id: request.journey_id,
+            stage_start_ms: request.stage_start_ms,
             stage_index: request.stage_index,
-            stage_start_ms: 0,
         })
     }
 }
@@ -209,8 +211,8 @@ impl ExecutorAbstract for ExecutorHttp {
                     journey_name: "test".to_string(),
                     journey_id: request.journey_id,
                     // status_code: Some(status) если добавишь поле
+                    stage_start_ms: request.stage_start_ms,
                     stage_index: request.stage_index,
-                    stage_start_ms: 0,
                 })
             }
             Err(e) => {
@@ -231,8 +233,8 @@ impl ExecutorAbstract for ExecutorHttp {
                     endpoint_key: request.endpoint_key.clone(),
                     journey_name: "test".to_string(),
                     journey_id: request.journey_id,
-                    stage_index: request.stage_index,
                     stage_start_ms: 0,
+                    stage_index: request.stage_index,
                 })
             }
         }
@@ -284,6 +286,7 @@ mod tests {
             endpoint_key: "GET - /ok".to_string(),
             timeout_ms: 10,
             journey_id: 0,
+            stage_start_ms: 0,
             stage_index: 0,
         };
         let _reponse = executor.execute(&execution_plan, &request, 0);

@@ -16,6 +16,7 @@ axum = "0.8.8"
 http = "1.4.0"
 async-trait = "0.1.89"
 url = "2.5.8"
+hdrhistogram = "7.5.4"
 
 [dev-dependencies]
 test_support = { path = "../test_support" }

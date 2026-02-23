@@ -1,13 +1,17 @@
-use crate::run_engine::{ByStage, EndpointStats, LatencyMs};
+use crate::run_engine::{ByStage, EndpointStats, LatencyMs, HIGHEST_US, LOWEST_US, SIGFIG};
 use crate::vu_runner::ResponseResult;
 use std::cmp::{max, min};
 use std::collections::BTreeMap;
+use hdrhistogram::Histogram;
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug)]
 pub struct MetricsAggregator {
     pub total_requests: u64,
     pub ok_requests: u64,
     pub error_requests: u64,
+
+    pub overall_latency: Histogram<u64>,
+    pub latency_by_stage: BTreeMap<u64, Histogram<u64>>,
 
     pub latency: Vec<u64>,
     pub latency_min: u64,
@@ -37,8 +41,15 @@ impl MetricsAggregator {
             by_stage: BTreeMap::new(),
             by_journey: BTreeMap::new(),
             latency_avg: 0,
+            overall_latency: Histogram::new_with_bounds(LOWEST_US, HIGHEST_US, SIGFIG).expect("histogram over_all creation failed"),
+            latency_by_stage: BTreeMap::new(),
         }
     }
+
+    pub fn record_overall_latency(&mut self, latency_us: u64) {
+        self.overall_latency.record(latency_us).expect("failed to record latency");
+    }
+
     pub fn consume(&mut self, request_event: ResponseResult, now_ms: u64) {
         self.total_requests += 1;
 
@@ -57,6 +68,8 @@ impl MetricsAggregator {
         self.latency_sum += request_event.latency_ms;
 
         self.latency.push(request_event.latency_ms);
+
+        self.record_overall_latency(request_event.latency_us);
 
         self.by_endpoint.entry(request_event.endpoint_key).and_modify(|endpoint_metrics| {
             endpoint_metrics.request.total +=1;
@@ -88,19 +101,24 @@ impl MetricsAggregator {
 
         self.by_stage.entry(request_event.stage_index).and_modify(|stage_rps| {
             stage_rps.request_count += 1;
-            if stage_rps.request_count == 1 {
-                stage_rps.stage_started_ms = now_ms;
-            }
             stage_rps.stage_duration_ms = now_ms.saturating_sub(stage_rps.stage_started_ms);
             let secs = (stage_rps.stage_duration_ms as f64 / 1000.0).max(0.001);
             stage_rps.achieved_rps = (stage_rps.request_count as f64 / secs) as u64;
-
-        }).or_insert(ByStage{
-            stage_index: request_event.stage_index,
-            achieved_rps: 0,
-            request_count: 1,
-            stage_duration_ms: 0,
-            stage_started_ms: now_ms,
+        }).or_insert(
+            ByStage {
+                stage_index: request_event.stage_index,
+                achieved_rps: 0,
+                request_count: 1,
+                stage_duration_ms: 0,
+                stage_started_ms: request_event.stage_start_ms,
+            }
+        );
+        self.latency_by_stage.entry(request_event.stage_index).and_modify(|hist| {
+            hist.record(request_event.latency_us);
+        }).or_insert({
+            let mut hist = Histogram::new_with_bounds(LOWEST_US, HIGHEST_US, SIGFIG).expect("histogram by stage creation failed");
+            hist.record(request_event.latency_us);
+            hist
         });
         
         self.by_journey.entry(request_event.journey_name).and_modify(|(_journey_id, journey_count)| *journey_count += 1)

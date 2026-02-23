@@ -9,7 +9,12 @@ use serde::{Serialize};
 use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::time::Duration;
+use hdrhistogram::Histogram;
 use tokio::sync::{mpsc, Semaphore};
+
+pub const LOWEST_US: u64 = 1;
+pub const HIGHEST_US: u64 = 60_000_000;
+pub const SIGFIG: u8 = 3;
 
 pub(crate) struct RunEngine {
     pub is_mock: bool,
@@ -38,8 +43,6 @@ impl RunEngine {
         let start_time_ms = tokio::time::Instant::now();
         let mut first_tick_real_ms: Option<u64> = None;
         let mut last_tick_real_ms: u64 = 0;
-
-
 
         let mode = match self.is_real_time {
             false => RunMode::Deterministic,
@@ -167,21 +170,31 @@ impl RunEngine {
                         RunMode::Deterministic => {
                             // INLINE EXECUTION (no spawn, no sem, no tx)
                             let started_ms = planned_now;
-                            let res = executor
+                            let mut res = executor
                                 .execute(&plan, &req, total_ticks)
                                 .await
                                 .unwrap_or_else(|e| {
                                     eprintln!("executor error: {e}");
+                                    let stage_start_ms = match tick.is_new_stage {
+                                        true => planned_now,
+                                        false => 0,
+                                    };
                                     ResponseResult {
                                         ok: false,
                                         latency_ms: 0,
+                                        latency_us: 0,
                                         error_kind: Some(ErrorType::ConnectionError),
                                         endpoint_key: req.endpoint_key.clone(),
                                         journey_name: "".to_string(),
                                         journey_id: req.journey_id,
                                         stage_index: tick.stage_index,
+                                        stage_start_ms,
                                     }
                                 });
+
+                            if tick.is_new_stage {
+                                res.stage_start_ms = planned_now;
+                            }
 
                             let finished_ms = started_ms + res.latency_ms;
 
@@ -204,20 +217,28 @@ impl RunEngine {
                             let handle = tokio::spawn(async move {
                                 let _permit = permit;
 
-                                let res = executor.execute(&plan, &req, total_ticks).await
+                                let mut res = executor.execute(&plan, &req, total_ticks).await
                                     .unwrap_or_else(|e| {
                                         eprintln!("executor error: {e}");
+                                        let stage_start_ms = match tick.is_new_stage {
+                                            true => planned_now,
+                                            false => 0,
+                                        };
                                         ResponseResult {
                                             ok: false,
                                             latency_ms: 0,
+                                            latency_us: 0,
                                             error_kind: Some(ErrorType::ConnectionError),
                                             endpoint_key: req.endpoint_key.clone(),
                                             journey_name: "".to_string(),
                                             journey_id: req.journey_id,
                                             stage_index,
+                                            stage_start_ms,
                                         }
                                     });
-
+                                if tick.is_new_stage {
+                                    res.stage_start_ms = last_request_started_ms;
+                                }
                                 // finished_ms в Real — “реальное”
                                 // но origin тут не доступен; можно взять last_request_started_ms + res.latency_ms,
                                 // если latency_ms измеряется в executor по real clock.
@@ -319,12 +340,18 @@ impl RunEngine {
         run_report.requests.ok = metrics.ok_requests;
         run_report.requests.error = metrics.error_requests;
 
+        // Latency
         run_report.latency_ms = LatencyMs{
             sum: metrics.latency_sum,
             min: metrics.latency_min,
             max: metrics.latency_max,
             avg: metrics.latency_avg,
         };
+        // Latency by stage
+        run_report.latency_by_stage = metrics.latency_by_stage.iter()
+            .map(|(stage_index, hist)| (*stage_index, LatencySummary::summarize(hist))).collect();
+
+        run_report.latency_overall_summary = LatencySummary::summarize(&metrics.overall_latency);
 
         run_report.sleep = pool.get_total_sleep_ms();
 
@@ -343,6 +370,8 @@ pub struct RunReport {
     journeys: Vec<Journey>,
     requests: Requests,
     latency_ms: LatencyMs,
+    latency_overall_summary: LatencySummary,
+    latency_by_stage: BTreeMap<u64, LatencySummary>,
     time: Time,
     missed_tick_count: u16,
     by_endpoint: BTreeMap<String, EndpointStats>,
@@ -390,6 +419,17 @@ impl RunReport {
             max: 0,
             avg: 0,
         },
+        latency_overall_summary: LatencySummary {
+            count: 0,
+            min: 0,
+            max: 0,
+            mean: 0,
+            p50: 0,
+            p90: 0,
+            p95: 0,
+            p99: 0,
+        },
+        latency_by_stage: Default::default(),
         time: Time {
             planned_start_ms: 0,
             planned_end_ms: 0,
@@ -418,7 +458,7 @@ pub struct ByStage {
     pub achieved_rps: u64,
     pub request_count: u64,
     pub stage_duration_ms: u64,
-    pub stage_started_ms: u64
+    pub stage_started_ms: u64,
 }
 impl Default for ByStage {
     fn default() -> ByStage {
@@ -427,7 +467,7 @@ impl Default for ByStage {
             achieved_rps: 0,
             request_count: 1,
             stage_duration_ms: 0,
-            stage_started_ms: 0
+            stage_started_ms: 0,
         }
     }
 }
@@ -505,6 +545,23 @@ pub(crate) struct LatencyMs {
     pub max: u64,
     pub avg: u64
 }
+#[derive(Debug, Serialize)]
+pub struct LatencySummary { count: u64, min: u64, max: u64, mean: u64, p50: u64, p90: u64, p95: u64, p99: u64 }
+
+impl LatencySummary {
+    pub fn summarize(histogram: &Histogram<u64>) -> Self {
+        LatencySummary{
+            count: histogram.len(),
+            min: histogram.min()/1000,
+            max: histogram.max()/1000,
+            mean: histogram.mean() as u64/1000,
+            p50: histogram.value_at_quantile(0.50)/1000,
+            p90: histogram.value_at_quantile(0.90)/1000,
+            p95: histogram.value_at_quantile(0.95)/1000,
+            p99: histogram.value_at_quantile(0.99)/1000,
+        }
+    }
+}
 
 #[derive(Debug, Serialize)]
 struct Scenario {
@@ -555,7 +612,7 @@ mod tests {
     }
 
     #[tokio::test]
-    // #[ignore] // Non deterministic
+    #[ignore] // Non deterministic
     async fn it_run_and_check_run_report() {
         let (base_url, shutdown_tx, handle) = test_support::test_server::spawn_test_server();
 

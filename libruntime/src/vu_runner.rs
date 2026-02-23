@@ -154,11 +154,13 @@ impl ExecutorAbstract for ExecutorMock {
         Ok(ResponseResult {
             ok: true,
             latency_ms,
+            latency_us: 0,
             error_kind: None,
             endpoint_key: request.endpoint_key.clone(),
             journey_name: plan.scenario_name.clone(),
             journey_id: request.journey_id,
             stage_index: request.stage_index,
+            stage_start_ms: 0,
         })
     }
 }
@@ -193,6 +195,7 @@ impl ExecutorAbstract for ExecutorHttp {
             .send()
             .await;
         let req_finish = req_start.elapsed().as_millis();
+        let req_finish_us = req_start.elapsed().as_micros();
 
         match resp {
             Ok(r) => {
@@ -200,12 +203,14 @@ impl ExecutorAbstract for ExecutorHttp {
                 Ok(ResponseResult {
                     ok: (200..300).contains(&status),
                     latency_ms: req_finish as u64,
+                    latency_us: req_finish_us as u64,
                     error_kind: None,
                     endpoint_key: request.endpoint_key.clone(),
                     journey_name: "test".to_string(),
                     journey_id: request.journey_id,
                     // status_code: Some(status) если добавишь поле
                     stage_index: request.stage_index,
+                    stage_start_ms: 0,
                 })
             }
             Err(e) => {
@@ -221,11 +226,13 @@ impl ExecutorAbstract for ExecutorHttp {
                 Ok(ResponseResult {
                     ok: false,
                     latency_ms: req_finish as u64,
+                    latency_us: 0,
                     error_kind: Some(kind),
                     endpoint_key: request.endpoint_key.clone(),
                     journey_name: "test".to_string(),
                     journey_id: request.journey_id,
                     stage_index: request.stage_index,
+                    stage_start_ms: 0,
                 })
             }
         }
@@ -235,12 +242,14 @@ impl ExecutorAbstract for ExecutorHttp {
 pub struct ResponseResult {
     pub ok: bool,
     pub(crate) latency_ms: u64,
+    pub(crate) latency_us: u64,
     #[allow(dead_code)]
     pub error_kind: Option<ErrorType>,
     pub(crate) endpoint_key: String,
     pub journey_name: String,
     pub journey_id: u64,
-    pub stage_index: u64
+    pub stage_index: u64,
+    pub stage_start_ms: u64
 }
 
 pub enum ErrorType {

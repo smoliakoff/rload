@@ -2,13 +2,14 @@ use libprotocol::schema::{Stage, Workload};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::str;
+use tokio::time::Instant;
 
 pub struct Scheduler {
     stages: Vec<Stage>,
     current_stage_index: usize,
     current_step_index: usize,
-    #[allow(dead_code)]
-    start_time: u64,
+    stage_offset_ms: u64, // сумма длительностей предыдущих stages
+    stage_start_ms: u64,  // offset начала текущего stage (то же, но удобно хранить)
     stage_max_ticks: HashMap<usize, i32>,
     pub(crate) planned_duration_ms: u64,
     pub(crate) planned_duration_sec: f64,
@@ -27,7 +28,8 @@ impl Scheduler {
             stages: workload.stages.clone(),
             current_stage_index: 0,
             current_step_index: 0,
-            start_time: 0,
+            stage_offset_ms: 0,
+            stage_start_ms: 0,
             stage_max_ticks,
             planned_duration_ms: planned_duration_ms as u64,
             planned_duration_sec: planned_duration_sec as f64,
@@ -41,13 +43,21 @@ impl Iterator for &mut Scheduler {
     type Item = Tick;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let stage_start = tokio::time::Instant::now();
         if let Some(max) = self.get_stage_max_ticks(self.current_stage_index) {
             if self.current_step_index >= max as usize {
+                // добавляем длительность завершённого stage в offset
+                let finished_stage = &self.stages[self.current_stage_index];
+                self.stage_offset_ms += finished_stage.duration_sec as u64 * 1000;
+
+                // переходим на следующий
                 self.current_step_index = 0;
-                self.current_stage_index+=1;
+                self.current_stage_index += 1;
+
+                // старт нового stage = текущий offset
+                self.stage_start_ms = self.stage_offset_ms;
             }
         }
+        let is_new_stage = self.current_step_index == 0;
 
         if self.current_stage_index >= self.stages.len() {
             return None;
@@ -57,14 +67,15 @@ impl Iterator for &mut Scheduler {
 
         let tick_in_stage = self.current_step_index as u64;
 
-        let planed_at_ms = stage_start.elapsed().as_millis() as u64 + tick_in_stage*1000/(stage.rps as u64);
-
         self.current_step_index+=1;
+        let tick_offset_ms = tick_in_stage * 1000 / (stage.rps as u64);
+
         Some(Tick{
             tick_index: tick_in_stage,
             stage_index: self.current_stage_index as u64,
-            planned_at_ms: planed_at_ms,
+            planned_at_ms: self.stage_start_ms + tick_offset_ms,
             target_rps: stage.rps as u32,
+            is_new_stage,
         })
     }
 }
@@ -74,7 +85,8 @@ pub struct Tick {
     pub tick_index: u64,
     pub stage_index: u64,
     pub planned_at_ms: u64,
-    pub target_rps:u32
+    pub target_rps:u32,
+    pub is_new_stage: bool
 }
 
 #[cfg(test)]
@@ -106,6 +118,10 @@ mod tests {
     fn it_planned_time_growing() {
         let workload = Workload {
             stages: vec!(
+                Stage {
+                    duration_sec: 2,
+                    rps: 5,
+                },
                 Stage {
                     duration_sec: 2,
                     rps: 5,

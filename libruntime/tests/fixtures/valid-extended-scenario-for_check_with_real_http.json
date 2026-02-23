@@ -12,11 +12,11 @@
     "stages": [
       {
         "duration_sec": 1,
-        "rps": 1
+        "rps": 2
       },
       {
-        "duration_sec": 1,
-        "rps": 1
+        "duration_sec": 2,
+        "rps": 2
       }
     ]
   },

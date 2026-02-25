@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "name": "default_scenario",
+  "target": {
+    "base_url": "http://localhost:8080",
+    "default_headers": {
+      "Content-Type": "application/json"
+    },
+    "insecure_tls": null
+  },
+  "workload": {
+    "stages": [
+      {
+        "duration_sec": 10,
+        "rps": 100
+      }
+    ]
+  },
+  "journeys": [
+    {
+      "name": "default",
+      "weight": 1,
+      "steps": [
+        {
+          "type": "sleep",
+          "duration_ms": 10
+        },
+        {
+          "type": "request",
+          "method": "GET",
+          "path": "/demo",
+          "headers": null,
+          "body": null,
+          "timeout_ms": null
+        }
+      ]
+    }
+  ],
+  "description": null,
+  "tags": null,
+  "thresholds": [
+    {
+      "metric": "http.error_rate",
+      "op": "gt",
+      "value": 10.0,
+      "scope": null
+    }
+  ],
+  "metadata": null
+}

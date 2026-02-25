@@ -273,7 +273,7 @@ mod tests {
         tokio::task::yield_now().await;
 
         let executor = ExecutorHttp::new_instance();
-        let path = fixture_path("libruntime/tests/fixtures/valid-extended-scenario-for_check_run_engine.json");
+        let path = fixture_path("crates/libruntime/tests/fixtures/valid-extended-scenario-for_check_run_engine.json");
         let content = std::fs::read_to_string(&path).unwrap();
         let scenario: Scenario = serde_json::from_str(&content).unwrap();
         let mut execution_plan = ExecutionPlan::from(&scenario);

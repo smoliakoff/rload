@@ -1,4 +1,10 @@
 [workspace]
 resolver = "2"
-members = ["lt_engine", "libcli", "libprotocol", "libruntime", "test_support"]
+members = [
+    "bin/rload",
+    "crates/libcli",
+    "crates/libprotocol",
+    "crates/libruntime",
+    "crates/test_support",
+]
 package = { edition = "2024" }

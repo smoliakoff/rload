@@ -1,0 +1,277 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Scenario",
+  "type": "object",
+  "properties": {
+    "description": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "journeys": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Journey"
+      }
+    },
+    "metadata": {
+      "type": "null"
+    },
+    "name": {
+      "type": "string"
+    },
+    "tags": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "string"
+      }
+    },
+    "target": {
+      "$ref": "#/$defs/Target"
+    },
+    "thresholds": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "$ref": "#/$defs/Threshold"
+      }
+    },
+    "version": {
+      "type": "integer",
+      "format": "uint16",
+      "maximum": 65535,
+      "minimum": 0
+    },
+    "workload": {
+      "$ref": "#/$defs/Workload"
+    }
+  },
+  "$version": "1",
+  "required": [
+    "version",
+    "name",
+    "target",
+    "workload",
+    "journeys"
+  ],
+  "$defs": {
+    "Journey": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Step"
+          }
+        },
+        "weight": {
+          "type": "integer",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "name",
+        "weight",
+        "steps"
+      ]
+    },
+    "Stage": {
+      "type": "object",
+      "properties": {
+        "duration_sec": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "rps": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "required": [
+        "duration_sec",
+        "rps"
+      ]
+    },
+    "Step": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "duration_ms": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            },
+            "type": {
+              "type": "string",
+              "const": "sleep"
+            }
+          },
+          "required": [
+            "type",
+            "duration_ms"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "body": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "headers": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "method": {
+              "$ref": "#/$defs/StepMethod"
+            },
+            "path": {
+              "type": "string"
+            },
+            "timeout_ms": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint32",
+              "minimum": 0
+            },
+            "type": {
+              "type": "string",
+              "const": "request"
+            }
+          },
+          "required": [
+            "type",
+            "method",
+            "path"
+          ]
+        }
+      ]
+    },
+    "StepMethod": {
+      "type": "string",
+      "enum": [
+        "GET",
+        "POST",
+        "PUT",
+        "PATCH",
+        "DELETE"
+      ]
+    },
+    "Target": {
+      "type": "object",
+      "properties": {
+        "base_url": {
+          "type": "string"
+        },
+        "default_headers": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "insecure_tls": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "base_url"
+      ]
+    },
+    "Threshold": {
+      "type": "object",
+      "properties": {
+        "metric": {
+          "type": "string"
+        },
+        "op": {
+          "$ref": "#/$defs/ThresholdOperator"
+        },
+        "scope": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ThresholdScope"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "value": {
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "required": [
+        "metric",
+        "op",
+        "value"
+      ]
+    },
+    "ThresholdOperator": {
+      "type": "string",
+      "enum": [
+        "lt",
+        "gt",
+        "lte",
+        "gte",
+        "eq"
+      ]
+    },
+    "ThresholdScope": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string"
+        },
+        "journey": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "endpoint",
+        "journey"
+      ]
+    },
+    "Workload": {
+      "type": "object",
+      "properties": {
+        "stages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Stage"
+          }
+        }
+      },
+      "required": [
+        "stages"
+      ]
+    }
+  }
+}

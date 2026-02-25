@@ -12,7 +12,7 @@ use crate::stats::live::LiveStats;
 
 /// A fictional versioning CLI
 #[derive(Debug, Parser)]
-#[command(name = "lt_engine")]
+#[command(name = "rload")]
 #[command(about = "Load Testing. Generate scenario -> SetUp -> Validate -> Run it !", long_about = None)]
 struct Cli {
     #[command(subcommand)]

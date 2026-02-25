@@ -554,12 +554,12 @@ mod tests {
     use crate::execution_plan::ExecutionPlan;
     use crate::run_engine::RunEngine;
     use libprotocol::Scenario;
-    use std::path::PathBuf;
+    use test_support::fixture_path;
     use crate::events::{Event, EventSink};
 
     #[tokio::test]
     async fn it_run_mock_and_check_run_report() {
-        let path = fixture_path("valid-extended-scenario-for_check_run_engine.json");
+        let path = fixture_path("crates/libruntime/tests/fixtures/valid-extended-scenario-for_check_run_engine.json");
         let content = std::fs::read_to_string(&path).unwrap();
         let scenario: Scenario = serde_json::from_str(&content).unwrap();
         let execution_plan = ExecutionPlan::from(&scenario);
@@ -590,12 +590,5 @@ mod tests {
         // shutdown
         let _ = shutdown_tx.send(());
         let _ = handle.await;
-    }
-
-    fn fixture_path(name: &str) -> PathBuf {
-        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("tests")
-            .join("fixtures")
-            .join(name)
     }
 }

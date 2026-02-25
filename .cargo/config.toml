@@ -1,2 +1,0 @@
-[env]
-WORKSPACE_ROOT = { value = ".", relative = true }

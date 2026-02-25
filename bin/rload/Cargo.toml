@@ -1,11 +1,11 @@
 [package]
-name = "lt_engine"
+name = "rload"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-libcli = {path = "../libcli"}
-libprotocol = {path = "../libprotocol"}
+libcli = { path = "../../crates/libcli" }
+libprotocol = { path = "../../crates/libprotocol" }
 anyhow = "1.0.101"
 assert_cmd = "2.1.2"
 insta = "1.46.3"
@@ -13,3 +13,4 @@ tokio = "1.49.0"
 
 [dev-dependencies]
 assert_cmd = "2.1.2"
+test_support = { path = "../../crates/test_support" }

@@ -1,5 +1,5 @@
 ---
-source: lt_engine/tests/integration_test.rs
+source: bin/rload/tests/integration_test.rs
 expression: cmd.output()
 ---
 Ok(
@@ -10,6 +10,6 @@ Ok(
             ),
         ),
         stdout: "ok\nPlanOnly(DryRunReport { iterations: 100, seed: 1000, journeys: 100, steps: StepsCounting { request_count: 100, sleep_count: 100 }, endpoints: {\"GET /test\": 80, \"GET /test2\": 20} })\n",
-        stderr: "scenario path: /Users/v.smolyakov/projects/Load-Testing/libprotocol/tests/fixtures/valid-extended-scenario.json\n",
+        stderr: "scenario path: /Users/v.smolyakov/projects/Load-Testing/crates/test_support/../../crates/libprotocol/tests/fixtures/valid-extended-scenario.json\n",
     },
 )

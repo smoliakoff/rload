@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "name": "Api gw test",
+  "target": {
+    "base_url": "https://api-gw.smoliakoff.com",
+    "default_headers": {
+      "Content-Type": "application/json"
+    },
+    "insecure_tls": null
+  },
+  "workload": {
+    "stages": [
+      {
+        "duration_sec": 5,
+        "rps": 3
+      },
+      {
+        "duration_sec": 5,
+        "rps": 10
+      },
+      {
+        "duration_sec": 5,
+        "rps": 30
+      }
+    ]
+  },
+  "journeys": [
+    {
+      "name": "home page and get orders",
+      "weight": 10,
+      "steps": [
+        {
+          "type": "request",
+          "method": "GET",
+          "path": "/",
+          "headers": null,
+          "body": null,
+          "timeout_ms": 1000
+        },
+        {
+          "type": "request",
+          "method": "GET",
+          "path": "/api/documentation",
+          "headers": null,
+          "body": null,
+          "timeout_ms": 1000
+        },
+        {
+          "type": "request",
+          "method": "GET",
+          "path": "/api/orders",
+          "headers": null,
+          "body": null,
+          "timeout_ms": 1000
+        }
+      ]
+    }
+  ],
+  "description": null,
+  "tags": null,
+  "thresholds": [
+    {
+      "metric": "http.error_rate",
+      "op": "gt",
+      "value": 10,
+      "scope": null
+    }
+  ],
+  "metadata": null
+}

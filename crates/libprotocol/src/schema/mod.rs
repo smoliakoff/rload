@@ -156,7 +156,7 @@ pub enum Step {
 
 impl Default for Step {
     fn default() -> Self {
-        Step::Sleep { duration_ms: 0 }
+        Step::Sleep { duration_ms: 10 }
     }
 }
 
@@ -164,7 +164,7 @@ impl Step {
     fn default_request() -> Self {
         Request {
             method: StepMethod::GET,
-            path: "".to_string(),
+            path: "/demo".to_string(),
             headers: None,
             body: None,
             timeout_ms: None,

@@ -1,6 +1,19 @@
-# rload
+![Rust](https://img.shields.io/badge/Rust-stable-orange)
+![License](https://img.shields.io/badge/license-MIT-blue)
+```bash
+ ____  _                 _
+|  _ \| | ___   __ _  __| |
+| |_) | |/ _ \ / _` |/ _` |
+|  _ <| | (_) | (_| | (_| |
+|_| \_\_|\___/ \__,_|\__,_|
 
+deterministic load engine
+```
 K6-like load testing engine/CLI written in Rust.
+
+<p align="center">
+  <img src="docs/assets/rload-demo.gif" alt="rload demo" width="800"/>
+</p>
 
 Pipeline: **Generate scenario → Setup → Validate → Run**  
 Includes **dry-run** (plan preview / deterministic sampling) and **mock run** (no network) for fast testing.

@@ -1,5 +1,5 @@
 ---
-source: libprotocol/tests/integration_test.rs
+source: crates/libprotocol/tests/integration_test.rs
 expression: "std::fs::read_to_string(&output_file)?"
 ---
 {
@@ -27,12 +27,12 @@ expression: "std::fs::read_to_string(&output_file)?"
       "steps": [
         {
           "type": "sleep",
-          "duration_ms": 0
+          "duration_ms": 10
         },
         {
           "type": "request",
           "method": "GET",
-          "path": "",
+          "path": "/demo",
           "headers": null,
           "body": null,
           "timeout_ms": null

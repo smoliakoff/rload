@@ -11,15 +11,15 @@
   "workload": {
     "stages": [
       {
-        "duration_sec": 5,
+        "duration_sec": 2,
         "rps": 3
       },
       {
-        "duration_sec": 5,
+        "duration_sec": 1,
         "rps": 10
       },
       {
-        "duration_sec": 5,
+        "duration_sec": 2,
         "rps": 30
       }
     ]

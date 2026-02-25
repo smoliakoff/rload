@@ -10,6 +10,16 @@ use libruntime::events::{Event, EventSink};
 use libruntime::scheduler::Scheduler;
 use crate::stats::live::LiveStats;
 
+const BANNER: &str = r#"
+ ____  _                 _
+|  _ \| | ___   __ _  __| |
+| |_) | |/ _ \ / _` |/ _` |
+|  _ <| | (_) | (_| | (_| |
+|_| \_\_|\___/ \__,_|\__,_|
+
+deterministic load engine
+"#;
+
 /// A fictional versioning CLI
 #[derive(Debug, Parser)]
 #[command(name = "rload")]
@@ -241,13 +251,8 @@ async fn ui_task(
 
 fn print_banner(version: &str) {
     println!();
-    println!("{}", style("██╗     ████████╗").cyan().bold());
-    println!("{}", style("██║     ╚══██╔══╝").cyan().bold());
-    println!("{} {}{}", style("██║        ██║").cyan().bold(), style("Load Engine v").green().bold(), version);
-    println!("{}", style("██║        ██║").cyan().bold());
-    println!("{}", style("███████╗   ██║").cyan().bold());
-    println!("{}", style("╚══════╝   ╚═╝").cyan().bold());
-    println!();
+    println!("{}", style(BANNER).cyan().bold());
+    println!("v{}", version);
 }
 
 pub fn validate(path: impl AsRef<Path>) ->anyhow::Result<()> {

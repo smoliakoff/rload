@@ -11,6 +11,8 @@ use std::sync::Arc;
 use std::time::Duration;
 use hdrhistogram::Histogram;
 use tokio::sync::{mpsc, Semaphore};
+use tokio::time::Instant;
+use crate::events::{Event, EventSink};
 
 pub const LOWEST_US: u64 = 1;
 pub const HIGHEST_US: u64 = 60_000_000;
@@ -38,8 +40,8 @@ impl RunEngine {
         Self { is_mock: is_mock.unwrap_or(false), is_real_time: is_real_time.unwrap_or(true) }
     }
 
-    pub async fn run(&self, plan: &ExecutionPlan, scenario: &libprotocol::schema::Scenario) -> RunReport {
-        let vus = 65535;
+    pub async fn run(&self, plan: &ExecutionPlan, scenario: &libprotocol::schema::Scenario, sink: EventSink<Event>) -> RunReport {
+        let vus = 1000;
         let start_time_ms = tokio::time::Instant::now();
         let mut first_tick_real_ms: Option<u64> = None;
         let mut last_tick_real_ms: u64 = 0;
@@ -61,8 +63,8 @@ impl RunEngine {
         let _runner_ctx = Ctx{};
 
         let executor_instance: Box<dyn ExecutorAbstract> = match self.is_mock {
-            true => ExecutorMock::new(),
-            false => ExecutorHttp::new()
+            true => ExecutorMock::new_instance(),
+            false => ExecutorHttp::new_instance()
         };
         let executor = Arc::new(executor_instance);
         let plan = Arc::new(plan.clone());
@@ -70,9 +72,9 @@ impl RunEngine {
         let runtime = VuRuntime{};
         let mut journey_per_vu: BTreeMap<usize, u64> = BTreeMap::new();
         let mut pool_vec = Vec::new();
-        for i in 0..=vus.clone() {
+        for i in 0..=vus {
             let stable_key = format!("{}-{}", i, sampler.seed);
-            if let Some(journey_id) = sampler.peek(&*stable_key){
+            if let Some(journey_id) = sampler.peek(&stable_key){
                 // metrics, journey_per_vu
                 journey_per_vu.entry(journey_id as usize).and_modify(|journey_count| *journey_count += 1).or_insert(1);
 
@@ -93,21 +95,19 @@ impl RunEngine {
         let mut first_tick_ms = tokio::time::Instant::now();
         run_report.ticks_arrival.first_tick_ms = first_tick_ms.elapsed().as_millis() as u64;
 
-        // Concurrency only for Real
-        // Ограничение одновременных запросов
         let max_in_flight = 1000usize;
         let sem = Arc::new(Semaphore::new(max_in_flight));
-        // Канал результатов
+
         let (tx, mut rx) = mpsc::unbounded_channel::<Completed>();
 
         let stop_at_ms = planned_duration_ms;
         let mut handles = Vec::new();
 
-        // Real-time origin (используем только в Real)
-        let origin = tokio::time::Instant::now();
+        // Real-time origin
+        let origin = Instant::now();
         // ---- MAIN LOOP ----
         for tick in scheduler {
-
+            sink.send(Event::TickExecuted{tick});
             let planned_now = tick.planned_at_ms;
 
             // 1) Time alignment / virtual time
@@ -120,37 +120,38 @@ impl RunEngine {
                     origin.elapsed().as_millis() as u64
                 }
                 RunMode::Deterministic => {
-                    // виртуальное время = planned
+                    // virtual time = planned
                     planned_now
                 }
             };
 
             if first_tick_real_ms.is_none() {
                 first_tick_real_ms = Some(first_tick_ms.elapsed().as_millis() as u64);
-                first_tick_ms = tokio::time::Instant::now();
+                first_tick_ms = Instant::now();
             }
 
             total_ticks += 1;
 
-            // 1) выравнивание по planned времени (правильное)
+            // 1) Alignment with planned time
             let elapsed_ms = first_tick_ms.elapsed().as_millis() as u64;
             if tick.planned_at_ms > elapsed_ms {
                 tokio::time::sleep(Duration::from_millis(tick.planned_at_ms - elapsed_ms)).await;
             }
 
             last_tick_real_ms = now;
-            if now >= stop_at_ms + 1 {
-                break; // окно закончилось — новые запросы не стартуем
+            if now > stop_at_ms + 1 {
+                break; // window finished — no new requests started
             }
 
-            // 2) пока есть готовые completed — разгребаем (чтобы VU возвращались в пул)
+            // 2) read from channel
             while let Ok(done) = rx.try_recv() {
+                sink.send(Event::RequestFinished{ok: done.res.ok, latency_ms: done.res.latency_ms as u32 });
                 metrics.consume(done.res, done.last_request_started_ms);
                 let vu = pool.get_mut(done.vu_idx).unwrap();
                 runtime.on_request_executed(&plan, vu, done.now_ms);
             }
 
-            // 3) берём VU
+            // 3) pick VU
             let Some(vu_idx) = pool.pick_ready_vu(now) else {
                 missed_ticks += 1;
                 // take some relaxation
@@ -161,7 +162,7 @@ impl RunEngine {
             let vu = pool.get_mut(vu_idx).unwrap();
 
             match runtime.next_action(&plan, vu, now).await {
-                NotReady(_next_ready_at) => { /* это баг pick_ready_vu */ missed_ticks += 1; run_report.vus.no_ready_ticks += 1; }
+                NotReady(_next_ready_at) => { /* possible bug pick_ready_vu */ missed_ticks += 1; run_report.vus.no_ready_ticks += 1; }
                 vu_runner::NextAction::CompletedIteration => { /* no-op */ }
                 Ready(mut req) => {
                     req.stage_index = tick.stage_index;
@@ -211,9 +212,10 @@ impl RunEngine {
                             let tx = tx.clone();
                             let executor = executor.clone();
                             let plan = plan.clone();
+                            let start_request = Instant::now();
 
-                            // ВАЖНО: НЕ захватывай `tick` ссылкой. Скопируй stage_index.
                             let stage_index = tick.stage_index;
+                            let sink_clone = sink.clone();
                             let handle = tokio::spawn(async move {
                                 let _permit = permit;
 
@@ -224,6 +226,8 @@ impl RunEngine {
                                             true => planned_now,
                                             false => 0,
                                         };
+                                        sink_clone.send(Event::RequestFinished{ok: false, latency_ms: start_request.elapsed().as_millis() as u32 });
+
                                         ResponseResult {
                                             ok: false,
                                             latency_ms: 0,
@@ -236,12 +240,11 @@ impl RunEngine {
                                             stage_start_ms,
                                         }
                                     });
+
                                 if tick.is_new_stage {
                                     res.stage_start_ms = last_request_started_ms;
                                 }
-                                // finished_ms в Real — “реальное”
-                                // но origin тут не доступен; можно взять last_request_started_ms + res.latency_ms,
-                                // если latency_ms измеряется в executor по real clock.
+
                                 let finished_ms = last_request_started_ms.saturating_add(res.latency_ms);
 
                                 let _ = tx.send(Completed {
@@ -277,12 +280,14 @@ impl RunEngine {
             }
 
             while let Ok(done) = rx.try_recv() {
+                sink.send(Event::RequestFinished{ok: done.res.ok, latency_ms: done.res.latency_ms as u32 });
                 metrics.consume(done.res, done.last_request_started_ms);
                 let vu = pool.get_mut(done.vu_idx).unwrap();
                 runtime.on_request_executed(&plan, vu, done.now_ms);
             }
         }
-        //
+
+        sink.send(Event::RunFinished);
 
         let drain_time = start_drain.elapsed().as_secs();
         let scheduler: &mut Scheduler = &mut Scheduler::new(&scenario.workload);
@@ -550,6 +555,7 @@ mod tests {
     use crate::run_engine::RunEngine;
     use libprotocol::Scenario;
     use std::path::PathBuf;
+    use crate::events::{Event, EventSink};
 
     #[tokio::test]
     async fn it_run_mock_and_check_run_report() {
@@ -557,8 +563,9 @@ mod tests {
         let content = std::fs::read_to_string(&path).unwrap();
         let scenario: Scenario = serde_json::from_str(&content).unwrap();
         let execution_plan = ExecutionPlan::from(&scenario);
+        let sink = EventSink::<Event>::noop();
 
-        let mut report = RunEngine::new(Some(true), Some(false)).run(&execution_plan, &scenario).await;
+        let mut report = RunEngine::new(Some(true), Some(false)).run(&execution_plan, &scenario, sink).await;
         report.time.real_time_duration_sec = 3; // flaky test
         insta::assert_debug_snapshot!(report);
         println!("{}", serde_json::to_string_pretty(&report).unwrap());
@@ -574,8 +581,9 @@ mod tests {
         let scenario: Scenario = serde_json::from_str(&content).unwrap();
         let mut execution_plan = ExecutionPlan::from(&scenario);
         execution_plan.base_url = base_url.clone();
+        let sink = EventSink::<Event>::noop();
 
-        let mut report = RunEngine::new(Some(false), Some(true)).run(&execution_plan, &scenario).await;
+        let mut report = RunEngine::new(Some(false), Some(true)).run(&execution_plan, &scenario, sink).await;
         report.time.real_time_duration_sec = 1; // flaky test
         insta::assert_debug_snapshot!(report);
         println!("{}", serde_json::to_string_pretty(&report).unwrap());

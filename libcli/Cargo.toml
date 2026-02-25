@@ -6,5 +6,10 @@ edition = "2024"
 [dependencies]
 libprotocol = { path = "../libprotocol" }
 libruntime = { path = "../libruntime" }
-clap = { version = "4.5.57", features = ["derive"] }
+clap = { version = "4.5.57", features = ["derive", "usage", "wrap_help"] }
 anyhow = "1.0.101"
+indicatif = "0.18.4"
+tokio = "1.49.0"
+hdrhistogram = "7.5.4"
+num_cpus = "1.17.0"
+console = "0.16.2"

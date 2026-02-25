@@ -221,7 +221,7 @@ RunReport {
         ByJourney {
             id: 1,
             key: "default_scenario",
-            per_vu: 19642,
+            per_vu: 300,
             per_request: 6000,
         },
     ],
@@ -230,7 +230,7 @@ RunReport {
         http_error_rate: 0.0,
     },
     vus: VuUtilization {
-        count: 65535,
+        count: 1000,
         no_ready_ticks: 0,
         no_ready_ratio: 0.0,
     },

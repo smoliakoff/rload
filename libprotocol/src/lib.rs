@@ -60,17 +60,17 @@ pub fn validate(path: impl AsRef<Path>) -> Result<()> {
 
     // 2) Business validation errors
     let business = Validator::new()
-        .with_rule(crate::semantic_validator::NameRule::new())
-        .with_rule(crate::semantic_validator::WebProtocolRule::new())
-        .with_rule(crate::semantic_validator::StagesRule::new())
-        .with_rule(crate::semantic_validator::DurationRule::new())
-        .with_rule(crate::semantic_validator::RpsRule::new())
-        .with_rule(crate::semantic_validator::VersionRule::new())
-        .with_rule(crate::semantic_validator::JourneysRule::new());
+        .with_rule(semantic_validator::NameRule::new())
+        .with_rule(semantic_validator::WebProtocolRule::new())
+        .with_rule(semantic_validator::StagesRule::new())
+        .with_rule(semantic_validator::DurationRule::new())
+        .with_rule(semantic_validator::RpsRule::new())
+        .with_rule(semantic_validator::VersionRule::new())
+        .with_rule(semantic_validator::JourneysRule::new());
     business.validate(&scenario_json, &mut errors);
 
     if !errors.is_empty() {
-        writeln!(stderr(), "{}", format!("Scenario is invalid ({} errors)", errors.len())).expect("Something went wrong while print stderr");
+        writeln!(stderr(), "Scenario is invalid ({} errors)", errors.len()).expect("Something went wrong while print stderr");
         return Err(ValidationErrors { items: errors }.into());
     }
     println!("ok");

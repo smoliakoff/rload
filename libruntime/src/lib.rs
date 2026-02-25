@@ -1,10 +1,11 @@
 pub mod execution_plan;
 mod weight_sampler;
 mod dry_runner;
-mod scheduler;
+pub mod scheduler;
 mod vu_runner;
 mod run_engine;
 mod metrics;
+pub mod events;
 
 use crate::execution_plan::ExecutionPlan;
 pub use libprotocol::schema::Journey;
@@ -12,6 +13,7 @@ use libprotocol::Scenario;
 use std::path::Path;
 use std::sync::Arc;
 use crate::dry_runner::DryRunMode;
+use crate::events::{Event, EventSink};
 
 pub struct AppContext {
     pub scenario: Arc<Scenario>
@@ -23,7 +25,7 @@ pub fn plan(scenario: &Scenario, seed: u32) -> ExecutionPlan {
 
     plan
 }
-pub async fn dry_run(scenario_path: impl AsRef<Path>, seed: u32, iterations: u32, is_simulated: bool) {
+pub async fn dry_run(scenario_path: impl AsRef<Path>, seed: u32, iterations: u32, is_simulated: bool, sink: EventSink<Event>) {
 
     let scenario: &Scenario = &libprotocol::parse_scenario(&scenario_path);
     let mode = match is_simulated {
@@ -31,17 +33,17 @@ pub async fn dry_run(scenario_path: impl AsRef<Path>, seed: u32, iterations: u32
         false => DryRunMode::PlanOnly
     };
     libprotocol::validate(&scenario_path).expect("scenario must be valid");
-    let report = dry_runner::dry_run(ExecutionPlan::from(scenario), iterations, seed, mode).await;
+    let report = dry_runner::dry_run(ExecutionPlan::from(scenario), iterations, seed, mode, sink).await;
 
     println!("{:?}", report)
 }
 
-pub async fn run(scenario_path: impl AsRef<Path>, is_mock: Option<bool>) {
+pub async fn run(scenario_path: impl AsRef<Path>, is_mock: Option<bool>, sink: EventSink<Event>) {
     let scenario = &libprotocol::parse_scenario(&scenario_path);
     let execution_plan: ExecutionPlan = ExecutionPlan::from(scenario);
 
     let report = run_engine::RunEngine::new(Some(is_mock.unwrap()), Some(true))
-        .run(&execution_plan, scenario).await;
+        .run(&execution_plan, scenario, sink).await;
 
     println!("{}", serde_json::to_string_pretty(&report).unwrap());
 }

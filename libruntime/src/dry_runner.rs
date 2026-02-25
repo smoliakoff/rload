@@ -3,6 +3,7 @@ use libprotocol::schema::Step;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use libprotocol::Scenario;
+use crate::events::{Event, EventSink};
 use crate::run_engine::{RunEngine, RunReport};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -18,7 +19,7 @@ pub enum DryRunMode<'a> {
 #[derive(Debug, Serialize)]
 pub enum DryRunResult {
     PlanOnly(DryRunReport),
-    Simulated(RunReport),
+    Simulated(Box<RunReport>),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -32,14 +33,14 @@ pub struct DryRunReport {
 
 }
 
-pub async fn dry_run(plan: ExecutionPlan, iterations: u32, seed: u32, mode: DryRunMode<'_>) -> DryRunResult {
+pub async fn dry_run(plan: ExecutionPlan, iterations: u32, seed: u32, mode: DryRunMode<'_>, sink: EventSink<Event>) -> DryRunResult {
 
     match mode {
         DryRunMode::PlanOnly => {
             DryRunResult::PlanOnly(dry_run_plan_only(plan, iterations, seed))
         }
         DryRunMode::Simulated(scenario) => {
-            DryRunResult::Simulated(dry_run_simulated(plan, iterations, seed, scenario).await)
+            DryRunResult::Simulated(Box::new(dry_run_simulated(plan, iterations, seed, scenario, sink).await))
         }
     }
 }
@@ -65,10 +66,9 @@ pub fn dry_run_plan_only(mut plan: ExecutionPlan, iterations: u32, seed: u32) ->
     report
 }
 
-pub async fn dry_run_simulated(plan: ExecutionPlan, _iterations: u32, _seed: u32, scenario: &Scenario) -> RunReport {
-    RunEngine::new(Some(false), Some(false)).run(&plan, &scenario).await
+pub async fn dry_run_simulated(plan: ExecutionPlan, _iterations: u32, _seed: u32, scenario: &Scenario, sink: EventSink<Event>) -> RunReport {
+    RunEngine::new(Some(false), Some(false)).run(&plan, scenario, sink).await
 }
-
 
 
 fn run_plan(plan: &ExecutionPlan, seed: u32, report: &mut DryRunReport, iter_index: u32) {
@@ -96,12 +96,14 @@ mod tests {
     use crate::execution_plan::ExecutionPlan;
     use libprotocol::Scenario;
     use std::path::PathBuf;
+    use crate::events::{Event, EventSink};
 
     #[tokio::test]
     async fn dry_run_scenario() {
         let scenario: &Scenario = &libprotocol::parse_scenario(fixture_path("valid-extended-scenario.json"));
         let plan = ExecutionPlan::from(scenario);
-        let report = dry_run(plan, 100, 12345, DryRunMode::PlanOnly).await;
+        let sink = EventSink::<Event>::noop();
+        let report = dry_run(plan, 100, 12345, DryRunMode::PlanOnly, sink).await;
        insta::assert_debug_snapshot!(report)
     }
 

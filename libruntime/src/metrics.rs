@@ -19,7 +19,7 @@ pub struct MetricsAggregator {
 
     ///  map endpoint_key → count, ok, err, latency_sum
     pub by_endpoint: BTreeMap<String, EndpointStats>,
-    /// map journey_name → count (сколько раз выбрали journey для выполнения реквеста)
+    /// map journey_name → count
     pub by_journey: BTreeMap<String, (usize, u64)>,
 
     pub by_stage: BTreeMap<u64, ByStage>
@@ -91,10 +91,10 @@ impl MetricsAggregator {
         }).or_insert(EndpointStats::default());
 
         self.latency_by_endpoint.entry(request_event.endpoint_key).and_modify(|hist| {
-            let _ = hist.record(request_event.latency_us).expect("cant crate record in hist for by endpoint");
+            hist.record(request_event.latency_us).expect("cant crate record in hist for by endpoint");
         }).or_insert({
             let mut hist = Histogram::new_with_bounds(LOWEST_US, HIGHEST_US, SIGFIG).expect("histogram by endpoint creation failed");
-            let _ = hist.record(request_event.latency_us);
+            hist.record(request_event.latency_us).expect("cant crate record in hist for by endpoint");
             hist
         });
 

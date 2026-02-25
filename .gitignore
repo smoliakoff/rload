@@ -1,2 +1,6 @@
 /target/*
+._*
+.DS_Store
+.idea/
+.git/
 

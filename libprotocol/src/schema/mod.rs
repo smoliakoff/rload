@@ -185,7 +185,7 @@ pub  enum ThresholdOperator {
 pub struct Threshold {
     pub  metric: String,
     pub  op: ThresholdOperator,
-    pub  value: i32,
+    pub  value: f64,
     pub  scope: Option<ThresholdScope>,
 }
 
@@ -194,7 +194,7 @@ impl Default for Threshold {
         Self {
             metric: "http.error_rate".to_string(),
             op: ThresholdOperator::Gt,
-            value: 10,
+            value: 10.0,
             scope: None,
         }
     }

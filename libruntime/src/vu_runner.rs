@@ -26,8 +26,7 @@ impl VuPool {
         self.vus.iter().map(|vu| vu.total_sleep_ms).sum()
     }
     pub fn get_mut(&mut self, vu_idx: usize) -> Result<&mut VUState, String> {
-        let vu = self.vus.get_mut(vu_idx).ok_or("VU index out of bounds".parse().unwrap());
-        vu
+        self.vus.get_mut(vu_idx).ok_or("VU index out of bounds".parse().unwrap())
     }
 }
 
@@ -127,7 +126,6 @@ impl VuRuntime {
     }
 }
 
-
 #[async_trait]
 pub trait ExecutorAbstract: Send + Sync {
     async fn execute(&self, plan: &ExecutionPlan, request: &RequestSpec, tick_ids: u64) -> Result<ResponseResult, String>;
@@ -137,7 +135,7 @@ pub struct ExecutorMock {
 
 }
 impl ExecutorMock {
-    pub fn new() -> Box<dyn ExecutorAbstract> {
+    pub fn new_instance() -> Box<dyn ExecutorAbstract> {
         Box::new(Self {})
     }
 }
@@ -150,7 +148,7 @@ impl ExecutorAbstract for ExecutorMock {
         let n = u64::from_be_bytes(first8);
 
 
-        let latency_ms =  n % 100 as u64;
+        let latency_ms =  n % 100_u64;
         // emulate latency for tests
         // sleep(Duration::from_millis(latency_ms));
         Ok(ResponseResult {
@@ -172,7 +170,7 @@ pub struct ExecutorHttp {
 }
 
 impl ExecutorHttp {
-    pub fn new() -> Box<dyn ExecutorAbstract> {
+    pub fn new_instance() -> Box<dyn ExecutorAbstract> {
         // blocking reqwest клиент
         let client = reqwest::Client::builder()
             .redirect(reqwest::redirect::Policy::limited(10))
@@ -272,9 +270,9 @@ mod tests {
     #[tokio::test]
     async fn it_works() {
         let (base_url, shutdown_tx, handle) = test_support::test_server::spawn_test_server();
-        tokio::task::yield_now().await; // даём серверу стартануть
+        tokio::task::yield_now().await;
 
-        let executor = ExecutorHttp::new();
+        let executor = ExecutorHttp::new_instance();
         let path = fixture_path("libruntime/tests/fixtures/valid-extended-scenario-for_check_run_engine.json");
         let content = std::fs::read_to_string(&path).unwrap();
         let scenario: Scenario = serde_json::from_str(&content).unwrap();

@@ -74,7 +74,7 @@ impl StagesRule {
 
 impl Rule for StagesRule {
     fn validate(&self, scenario: &Scenario, errors: &mut Vec<ValidationError>) {
-        if scenario.workload.stages.len() == 0 {
+        if scenario.workload.stages.is_empty(){
             errors.push(ValidationError {
                 path: "/workload/stages".to_string(),
                 code: "".to_string(),
@@ -166,7 +166,7 @@ impl JourneysRule {
 impl Rule for JourneysRule {
     fn validate(&self, scenario: &Scenario, errors: &mut Vec<ValidationError>) {
         let journeys: &Vec<Journey> = &scenario.journeys;
-        if journeys.len() == 0 {
+        if journeys.is_empty() {
             errors.push(ValidationError {
                 path: "/journeys".to_string(),
                 code: "missing_field".to_string(),
@@ -190,7 +190,7 @@ impl Rule for JourneysRule {
                 })
             }
             for (step_index, step) in journey.steps.iter().enumerate() {
-                JourneyStepRule::validate(&JourneyStepRule::new(), &step, errors, i, step_index);
+                JourneyStepRule::validate(&JourneyStepRule::new(), step, errors, i, step_index);
             }
         }
     }
@@ -224,14 +224,12 @@ impl JourneyStepRule {
                 method: _method,
                 timeout_ms
             } => {
-                if let Some(timeout_ms) = timeout_ms {
-                    if timeout_ms == &0 || timeout_ms > &100000 {
-                        errors.push(ValidationError {
-                            path: std::format!("/journeys/{}/steps/{}/timeout_ms", journey_index, step_index),
-                            code: "invalid_value".to_string(),
-                            message: "timeout_ms must be between 1 and 100000".to_string(),
-                        })
-                    }
+                if let Some(timeout_ms) = timeout_ms && (timeout_ms == &0 || timeout_ms > &100000) {
+                    errors.push(ValidationError {
+                        path: std::format!("/journeys/{}/steps/{}/timeout_ms", journey_index, step_index),
+                        code: "invalid_value".to_string(),
+                        message: "timeout_ms must be between 1 and 100000".to_string(),
+                    })
                 }
                 if !path.as_str().starts_with("/") {
                     errors.push(ValidationError {
@@ -240,23 +238,20 @@ impl JourneyStepRule {
                         message: "path required. path must be relative, starts with '/'".to_string(),
                     })
                 }
-                if let Some(headers) = _headers {
-                    if headers.len() > 100 {
-                        errors.push(ValidationError {
-                            path: std::format!("/journeys/{}/steps/{}/headers", journey_index, step_index),
-                            code: "invalid_value".to_string(),
-                            message: "headers must be less than 100 items".to_string(),
-                        })
-                    }
+                if let Some(headers) = _headers
+                    && headers.len() > 100 {
+                    errors.push(ValidationError {
+                        path: std::format!("/journeys/{}/steps/{}/headers", journey_index, step_index),
+                        code: "invalid_value".to_string(),
+                        message: "headers must be less than 100 items".to_string(),
+                    })
                 }
-                if let Some(body) = _body {
-                    if body.len() > 10000 {
-                        errors.push(ValidationError {
-                            path: std::format!("/journeys/{}/steps/{}/body", journey_index, step_index),
-                            code: "invalid_value".to_string(),
-                            message: "body must be less than 10000 characters".to_string(),
-                        })
-                    }
+                if let Some(body) = _body && body.len() > 10000 {
+                    errors.push(ValidationError {
+                        path: std::format!("/journeys/{}/steps/{}/body", journey_index, step_index),
+                        code: "invalid_value".to_string(),
+                        message: "body must be less than 10000 characters".to_string(),
+                    })
                 }
             }
         }
@@ -293,7 +288,7 @@ impl Rule for WebProtocolRule {
 
 impl Rule for NameRule {
     fn validate(&self, scenario: &Scenario, errors: &mut Vec<ValidationError>) {
-        if scenario.name.len() == 0 {
+        if scenario.name.is_empty() {
             errors.push(ValidationError{
                 path: "".to_string(),
                 code: "".to_string(),

@@ -46,7 +46,7 @@ expression: "std::fs::read_to_string(&output_file)?"
     {
       "metric": "http.error_rate",
       "op": "gt",
-      "value": 10,
+      "value": 10.0,
       "scope": null
     }
   ],

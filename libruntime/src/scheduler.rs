@@ -4,24 +4,27 @@ use std::collections::HashMap;
 use std::str;
 
 pub struct Scheduler {
+    pub total_ticks: u64,
     stages: Vec<Stage>,
     current_stage_index: usize,
     current_step_index: usize,
-    stage_offset_ms: u64, // сумма длительностей предыдущих stages
-    stage_start_ms: u64,  // offset начала текущего stage (то же, но удобно хранить)
+    stage_offset_ms: u64,
+    stage_start_ms: u64,
     stage_max_ticks: HashMap<usize, i32>,
     pub(crate) planned_duration_ms: u64,
     pub(crate) planned_duration_sec: f64,
 }
 
 impl Scheduler {
-    pub(crate) fn new(workload: &Workload) -> Self {
-        let stage_max_ticks = workload.stages.iter().enumerate()
+    pub fn new(workload: &Workload) -> Self {
+        let stage_max_ticks: HashMap<usize, i32> = workload.stages.iter().enumerate()
             .map(|(i, stage)| (i, stage.duration_sec * stage.rps)).collect();
         let planned_duration_ms: i32 = workload.stages.iter()
             .map(| stage| stage.duration_sec * 1000).sum();
         let planned_duration_sec: i32 = workload.stages.iter()
             .map(|stage|  stage.duration_sec).sum();
+
+        let total_ticks: u64 = stage_max_ticks.values().sum::<i32>() as u64;
 
         Scheduler {
             stages: workload.stages.clone(),
@@ -30,6 +33,7 @@ impl Scheduler {
             stage_offset_ms: 0,
             stage_start_ms: 0,
             stage_max_ticks,
+            total_ticks,
             planned_duration_ms: planned_duration_ms as u64,
             planned_duration_sec: planned_duration_sec as f64,
         }
@@ -42,19 +46,18 @@ impl Iterator for &mut Scheduler {
     type Item = Tick;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(max) = self.get_stage_max_ticks(self.current_stage_index) {
-            if self.current_step_index >= max as usize {
+        if let Some(max) = self.get_stage_max_ticks(self.current_stage_index) &&
+            self.current_step_index >= max as usize {
                 // добавляем длительность завершённого stage в offset
                 let finished_stage = &self.stages[self.current_stage_index];
                 self.stage_offset_ms += finished_stage.duration_sec as u64 * 1000;
 
-                // переходим на следующий
+                // move on to the next one
                 self.current_step_index = 0;
                 self.current_stage_index += 1;
 
-                // старт нового stage = текущий offset
+                // start of new stage = current offset
                 self.stage_start_ms = self.stage_offset_ms;
-            }
         }
         let is_new_stage = self.current_step_index == 0;
 
@@ -79,7 +82,7 @@ impl Iterator for &mut Scheduler {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub struct Tick {
     pub tick_index: u64,
     pub stage_index: u64,

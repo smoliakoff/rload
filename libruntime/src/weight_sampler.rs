@@ -23,7 +23,7 @@ impl WeightSampler {
         debug_assert!(bucket < self.total_weight);
         debug_assert_eq!(self.journey_ids.len(), self.cumulative_ends.len());
 
-        // ищем первый end > bucket
+        // search for the first end > bucket
         let idx = self.cumulative_ends
             .binary_search_by(|end| {
                 if *end > bucket { std::cmp::Ordering::Greater } else { std::cmp::Ordering::Less }
@@ -33,13 +33,13 @@ impl WeightSampler {
         self.journey_ids.get(idx).copied()
     }
 
-    /// полный вариант: сам строит bucket из stable_key
+    /// full version: builds the bucket from stable_key itself
     pub fn peek(&self, stable_key: &str) -> Option<i32> {
         if self.total_weight == 0 {
             return None;
         }
         let key = format!("{stable_key}:seed={}", self.seed);
-        let bucket = self.bucket_from_key(&key, self.total_weight as u32);
+        let bucket = self.bucket_from_key(&key, self.total_weight);
         self.peek_bucket(bucket)
     }
 
@@ -59,14 +59,13 @@ impl From<&Scenario> for WeightSampler {
         let total_weight: u16 = scenario.journeys.iter().map(|journey| journey.weight).sum();
         let journeys_ids = scenario.journeys.iter().enumerate()
             .map(|(i, _journey)| i as i32)
-            .into_iter()
             .collect();
         let mut weights: Vec<u16> = scenario.journeys.iter().map(|journey| journey.weight).collect();
         WeightSampler {
             seed: "".to_string(),
             total_weight: total_weight.into(),
             journey_ids: journeys_ids,
-            cumulative_ends: crate::execution_plan::calculate_cumulative_ends(&mut *weights),
+            cumulative_ends: crate::execution_plan::calculate_cumulative_ends(&mut weights),
         }
     }
 }

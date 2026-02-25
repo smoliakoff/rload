@@ -228,8 +228,8 @@ expression: actual
           ]
         },
         "value": {
-          "type": "integer",
-          "format": "int32"
+          "type": "number",
+          "format": "double"
         }
       },
       "required": [

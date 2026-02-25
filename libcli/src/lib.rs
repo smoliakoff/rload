@@ -1,8 +1,17 @@
-use clap::{Parser, Subcommand, ValueEnum};
+mod ui;
+mod stats;
+
+use clap::{Parser, Subcommand};
+use console::style;
 use std::path::Path;
+use indicatif::{ProgressBar, ProgressStyle};
+use tokio::sync::mpsc;
+use libruntime::events::{Event, EventSink};
+use libruntime::scheduler::Scheduler;
+use crate::stats::live::LiveStats;
 
 /// A fictional versioning CLI
-#[derive(Debug, Parser)] // requires `derive` feature
+#[derive(Debug, Parser)]
 #[command(name = "lt_engine")]
 #[command(about = "Load Testing. Generate scenario -> SetUp -> Validate -> Run it !", long_about = None)]
 struct Cli {
@@ -127,22 +136,6 @@ enum Commands {
     },
 }
 
-#[derive(ValueEnum, Copy, Clone, Debug, PartialEq, Eq)]
-enum ColorWhen {
-    Always,
-    Auto,
-    Never,
-}
-
-impl std::fmt::Display for ColorWhen {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.to_possible_value()
-            .expect("no values are skipped")
-            .get_name()
-            .fmt(f)
-    }
-}
-
 pub async fn run() -> anyhow::Result<()>{
     let args = Cli::parse();
 
@@ -157,16 +150,104 @@ pub async fn run() -> anyhow::Result<()>{
             Ok(libprotocol::validate(scenario.unwrap())?)
         },
         Commands::DryRun { scenario, seed, iterations, is_simulated, .. } => {
-            Ok(libruntime::dry_run(scenario, seed, iterations, is_simulated).await)
+            let (tx, _rx) = mpsc::unbounded_channel();
+            let sink = EventSink::new(tx);
+
+            libruntime::dry_run(scenario, seed, iterations, is_simulated, sink).await;
+            Ok(())
         },
         Commands::RunMock { scenario} => {
-            Ok(libruntime::run(scenario, Some(true)).await)
+            let (tx, _rx) = mpsc::unbounded_channel();
+            let sink = EventSink::new(tx);
+
+            libruntime::run(scenario, Some(true), sink).await;
+            Ok(())
         },
         Commands::Run { scenario} => {
-            Ok(libruntime::run(scenario, Some(false)).await)
+            let scenario_instance = &libprotocol::parse_scenario(&scenario);
+            let scheduler: Scheduler = Scheduler::new(&scenario_instance.workload);
+
+            let (tx, rx) = mpsc::unbounded_channel();
+            let sink = EventSink::new(tx);
+
+            let total_ticks = scheduler.total_ticks;
+            //
+            print_banner(env!("CARGO_PKG_VERSION"));
+            println!("OS: {}  CPU: {}",
+                     std::env::consts::OS,
+                     num_cpus::get()
+            );
+            println!("\n\n");
+
+            let ui = tokio::spawn(async move {
+                ui_task(rx, total_ticks).await;
+            });
+
+            let report = libruntime::run(scenario, Option::from(false), sink).await;
+
+            ui.await.ok();
+            Ok(report)
         },
 
     }
+}
+
+async fn ui_task(
+    mut rx: mpsc::UnboundedReceiver<Event>,
+    total_ticks: u64,
+) {
+    let pb = ProgressBar::new(total_ticks);
+    pb.set_style(
+        ProgressStyle::with_template("[{bar:60}] {pos}/{len} {msg}")
+            .unwrap()
+            .progress_chars("=>-"),
+    );
+
+    let mut s = LiveStats::default();
+
+    // таймер обновления UI
+    let mut ticker = tokio::time::interval(std::time::Duration::from_millis(250));
+
+    loop {
+        tokio::select! {
+            _ = ticker.tick() => {
+                pb.set_position(s.totals.ticks_executed);
+                let err_rate = if (s.totals.requests_ok + s.totals.requests_err) > 0 {
+                    (s.totals.requests_err as f64) / ((s.totals.requests_ok + s.totals.requests_err) as f64) * 100.0
+                } else { 0.0 };
+
+                pb.set_message(format!(
+                    "ok={} err={} ({:.2}%) in_flight={}",
+                    s.totals.requests_ok, s.totals.requests_err, err_rate, s.totals.in_flight
+                ));
+            }
+            ev = rx.recv() => {
+                match ev {
+                    Some(Event::TickExecuted{..}) => s.totals.ticks_executed += 1,
+                    Some(Event::RequestFinished{ok, latency_ms: _}) => {
+                        if ok { s.totals.requests_ok += 1 } else { s.totals.requests_err += 1 }
+                        // тут же обновляешь latency-агрегаты / окно RPS
+                    }
+                    Some(Event::InFlight{value}) => s.totals.in_flight = value,
+                    Some(Event::RunFinished) | None => {
+                        pb.finish_with_message("done");
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn print_banner(version: &str) {
+    println!();
+    println!("{}", style("██╗     ████████╗").cyan().bold());
+    println!("{}", style("██║     ╚══██╔══╝").cyan().bold());
+    println!("{} {}{}", style("██║        ██║").cyan().bold(), style("Load Engine v").green().bold(), version);
+    println!("{}", style("██║        ██║").cyan().bold());
+    println!("{}", style("███████╗   ██║").cyan().bold());
+    println!("{}", style("╚══════╝   ╚═╝").cyan().bold());
+    println!();
 }
 
 pub fn validate(path: impl AsRef<Path>) ->anyhow::Result<()> {
